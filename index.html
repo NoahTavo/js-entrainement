@@ -1,12 +1,50 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document</title>
-    <script src="script.js" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duel — Jeu de plateau tour par tour</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<header class="hud">
+    <h1 class="hud__title">DUEL<span class="hud__title-accent">.</span></h1>
+    <p class="hud__turn" id="turn-indicator">Chargement…</p>
+</header>
+
+<main class="arena">
+
+<!--============Fiche du joueur 1===============-->
+    <section class="player-card player-card--p1" id="card-p1">
+        <h2 class="player-card__name"></h2>
+        <div class="player-card__hp-bar"><div class="player-card__hp-fill"></div></div>
+        <p class="player-card__stat">PV : <span class="hp-value">100</span> / 100</p>
+        <p class="player-card__stat">Arme : <span class="weapon-value">—</span></p>
+        <p class="player-card__stat">Posture : <span class="posture-value">—</span></p>
+    </section>
+
+    <!-- La grille de jeu gere dans le JS -->
+    <div id="map" class="map"></div>
+
+    <!--============Fiche du joueur 2===============-->
+    <section class="player-card player-card--p2" id="card-p2">
+        <h2 class="player-card__name"></h2>
+        <div class="player-card__hp-bar"><div class="player-card__hp-fill"></div></div>
+        <p class="player-card__stat">PV : <span class="hp-value">100</span> / 100</p>
+        <p class="player-card__stat">Arme : <span class="weapon-value">—</span></p>
+        <p class="player-card__stat">Posture : <span class="posture-value">—</span></p>
+    </section>
+
+</main>
+
+<section class="log" id="log" aria-live="polite"></section>
+
+<footer class="controls">
+    <p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> se déplacer</p>
+    <p><kbd>P</kbd> changer de posture</p>
+    <p><kbd>A</kbd> attaquer (en combat)</p>
+    <p><kbd>Entrée</kbd> terminer le tour</p>
+</footer>
 </body>
 </html>
