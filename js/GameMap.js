@@ -1,50 +1,190 @@
-
-class GameMap {
-    constructor(containerId, size, obstacleRate ) {
-        this.container = document.getElementById(containerId);
-        this.size = size;
+class Cell {
+    constructor(obstacleRate) {
         this.obstacleRate = obstacleRate;
-        this.grid = [];
-
-        this.generateGrid();
-        this.render();
+        this.contenu = this.choisirContenu();
     }
 
-    // Crée le tableau 2D avec des obstacles placés au hasard
-    generateGrid() {
-        for (let y = 0; y < this.size; y++) {
-            const row = [];
-            for (let x = 0; x < this.size; x++) {
-                const isObstacle = Math.random() < this.obstacleRate;
-                row.push(isObstacle ? 1 : 0);
-            }
-            this.grid.push(row);
+    choisirContenu() {
+        const aleatoire = Math.random();
+
+        if (aleatoire < this.obstacleRate) {
+            return "obstacle";
         }
+
+        return "vide";
     }
 
-    // Affiche la grille dans le DOM à partir de this.grid
+    estObstacle() {
+        return this.contenu === "obstacle";
+    }
+
+    estVide() {
+        return this.contenu === "vide";
+    }
+
+    placerArme(arme) {
+        this.contenu = arme;
+    }
+
+    placerPersonnage(personnage) {
+        this.contenu = personnage;
+    }
+
     render() {
-        this.container.innerHTML = '';
-        this.container.style.display = 'grid';
-        this.container.style.gridTemplateColumns = `repeat(${this.size}, 1fr)`;
-        this.container.style.gridTemplateRows = `repeat(${this.size}, 1fr)`;
+        const element = document.createElement("div");
 
-        for (let y = 0; y < this.size; y++) {
-            for (let x = 0; x < this.size; x++) {
-                const cell = document.createElement('div');
-                cell.classList.add('map__cell');
+        element.classList.add("map__cell");
 
-                if (this.grid[y][x] === 1) {
-                    cell.classList.add('map__cell--obstacle');
-                }
-
-                this.container.appendChild(cell);
-            }
+        if (this.estObstacle()) {
+            element.classList.add("map__cell--obstacle");
         }
+
+        if (this.contenu instanceof Personnage) {
+            element.classList.add("map__cell--personnage");
+
+            const image = document.createElement("img");
+            image.classList.add("map__cell-sprite");
+            image.src = this.contenu.getChemin();
+            image.alt = this.contenu.getNom();
+
+            element.appendChild(image);
+        }
+
+        return element;
     }
 }
 
-//Génération automatique de la carte au chargement de la page
-document.addEventListener('DOMContentLoaded', () => {
-    new GameMap('map', 16, 0.15);
+
+class Column {
+    constructor(taille, obstacleRate) {
+        this.taille = taille;
+        this.obstacleRate = obstacleRate;
+        this.cellules = [];
+
+        this.creerCellules();
+    }
+
+    creerCellules() {
+        for (let i = 0; i < this.taille; i++) {
+            const cellule = new Cell(this.obstacleRate);
+            this.cellules.push(cellule);
+        }
+    }
+
+    getCellule(index) {
+        return this.cellules[index];
+    }
+
+    getCellules() {
+        return this.cellules;
+    }
+
+    render(container) {
+        this.cellules.forEach(cellule => {
+            container.appendChild(cellule.render());
+        });
+    }
+}
+
+
+class Map {
+    constructor(containerId, taille, obstacleRate, nombreArmes) {
+        this.container = document.getElementById(containerId);
+        this.taille = taille;
+        this.obstacleRate = obstacleRate;
+        this.nombreArmes = nombreArmes;
+
+        this.colonnes = [];
+
+        this.creerColonnes();
+        this.placerArmes();
+        this.placerPersonnages();
+        this.render();
+    }
+
+    creerColonnes() {
+        for (let i = 0; i < this.taille; i++) {
+            const colonne = new Column(
+                this.taille,
+                this.obstacleRate
+            );
+
+            this.colonnes.push(colonne);
+        }
+    }
+
+    placerArmes() {
+        let armesPlacees = 0;
+
+        while (armesPlacees < this.nombreArmes) {
+            const x = Math.floor(Math.random() * this.taille);
+            const y = Math.floor(Math.random() * this.taille);
+
+            const cellule = this.colonnes[x].getCellule(y);
+
+            if (cellule.estVide()) {
+                // Pour l'instant on réserve simplement
+                // l'emplacement de l'arme.
+                cellule.placerArme("arme");
+
+                armesPlacees++;
+            }
+        }
+    }
+
+    placerPersonnages() {
+        const personnages = recupererPersonnagesSelectionnes();
+
+        personnages.forEach(personnage => {
+            let personnagePlace = false;
+
+            while (!personnagePlace) {
+                const x = Math.floor(Math.random() * this.taille);
+                const y = Math.floor(Math.random() * this.taille);
+                const cellule = this.getCellule(x, y);
+
+                if (cellule.estVide()) {
+                    cellule.placerPersonnage(personnage);
+                    personnagePlace = true;
+                }
+            }
+        });
+    }
+
+    getCellule(x, y) {
+        if (
+            x < 0 ||
+            x >= this.taille ||
+            y < 0 ||
+            y >= this.taille
+        ) {
+            return null;
+        }
+
+        return this.colonnes[x].getCellule(y);
+    }
+
+    render() {
+        this.container.innerHTML = "";
+
+        this.container.style.display = "grid";
+        this.container.style.gridTemplateColumns =
+            `repeat(${this.taille}, minmax(0, 1fr))`;
+        this.container.style.gridTemplateRows =
+            `repeat(${this.taille}, minmax(0, 1fr))`;
+
+        this.colonnes.forEach(colonne => {
+            colonne.render(this.container);
+        });
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const map = new Map(
+        "map",
+        10,
+        0.15,
+        4
+    );
 });
