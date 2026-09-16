@@ -42,13 +42,11 @@
         body {
             overflow: hidden;
 
-            background:
-                    radial-gradient(
-                            ellipse at center,
-                            rgba(8, 119, 201, .25) 0%,
-                            rgba(3, 15, 25, .8) 45%,
-                            #010305 100%
-                    );
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),url("etoile.png");
+            background-repeat: no-repeat; /* Empêche la répétition de l'image */
+            background-position: center;
+            background-size: cover;
+            backdrop-filter: blur(5px);
 
             color: white;
 
@@ -649,7 +647,7 @@
         <div class="logo-line"></div>
 
         <div class="logo-subtitle">
-            1V1 COMBAT SYSTEM
+            1V1 COMBAT 
         </div>
 
     </header>
