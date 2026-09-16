@@ -60,8 +60,9 @@ body {
     border: 2px solid  #ffd21c;
     border-radius: 6px;
     padding: 2px;
-    width: 1100px;
-    height: 1100px;
+    width: min(1100px, 90vw);
+    height: auto;
+    aspect-ratio: 1 / 1;
 
 }
 
@@ -230,4 +231,14 @@ kbd {
                     rgba(251,86,7,.3),
                     transparent
             );
+}
+.map__cell--personnage {
+    position: relative;
+}
+
+.map__cell-sprite {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2px;
 }
