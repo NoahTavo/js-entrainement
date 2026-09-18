@@ -1,20 +1,20 @@
 class Personnage {
     constructor(fichier) {
         this.fichier = fichier;
-        this.nom = fichier.replace(/\.png$/i, "");
-        this.chemin = `personnages/${fichier}`;
+        this.name = fichier.replace(/\.png$/i, "");
+        this.path = `personnages/${fichier}`;
     }
 
     getFichier() {
         return this.fichier;
     }
 
-    getNom() {
-        return this.nom;
+    getname() {
+        return this.name;
     }
 
-    getChemin() {
-        return this.chemin;
+    getpath() {
+        return this.path;
     }
 }
 
@@ -41,7 +41,7 @@ class SelecteurPersonnage {
         this.personnages.forEach(personnage => {
             const option = document.createElement("option");
             option.value = personnage.getFichier();
-            option.textContent = personnage.getNom();
+            option.textContent = personnage.getname();
             this.select.appendChild(option);
         });
     }
@@ -64,7 +64,7 @@ class SelecteurPersonnage {
             return;
         }
         this.preview.src = personnage.getChemin();
-        this.preview.alt = personnage.getNom();
+        this.preview.alt = personnage.getname();
     }
 }
 
@@ -116,15 +116,15 @@ class Jeu {
     }
 
     demarrer() {
-        console.log("Dynedoc Fatality démarré.");
-        console.log(`${this.gestionnairePersonnages.getPersonnages().length} personnages disponibles.`);
+        console.log("Dynedoc Fatality start.");
+        console.log(`${this.gestionnairePersonnages.getPersonnages().length} characters available.`);
     }
 }
 
 const CLE_STOCKAGE_JOUEUR1 = "Dynedoc_joueur1";
 const CLE_STOCKAGE_JOUEUR2 = "Dynedoc_joueur2";
 
-function recupererPersonnagesSelectionnes() {
+function retrieveSelectedCharacters() {
     const gestionnaire = new GestionnairePersonnages();
     const fichiers = [
         localStorage.getItem(CLE_STOCKAGE_JOUEUR1),
@@ -154,7 +154,7 @@ function afficherNomsJoueurs() {
         const personnage = gestionnaire.getPersonnage(joueur.fichier);
 
         if (elementNom && personnage) {
-            elementNom.textContent = personnage.getNom();
+            elementNom.textContent = personnage.getname();
         }
     });
 }

@@ -1,32 +1,32 @@
 class Cell {
     constructor(obstacleRate) {
         this.obstacleRate = obstacleRate;
-        this.contenu = this.choisirContenu();
+        this.contenu = this.Selectcontent();
     }
 
-    choisirContenu() {
+    Selectcontent() {
         const aleatoire = Math.random();
 
         if (aleatoire < this.obstacleRate) {
             return "obstacle";
         }
 
-        return "vide";
+        return "void";
     }
 
-    estObstacle() {
+    isObstacle() {
         return this.contenu === "obstacle";
     }
 
-    estVide() {
-        return this.contenu === "vide";
+    isVoid() {
+        return this.contenu === "void";
     }
 
-    placerArme(arme) {
+    placeWeapon(arme) {
         this.contenu = arme;
     }
 
-    placerPersonnage(personnage) {
+    placeCharacter(personnage) {
         this.contenu = personnage;
     }
 
@@ -35,7 +35,7 @@ class Cell {
 
         element.classList.add("map__cell");
 
-        if (this.estObstacle()) {
+        if (this.isObstacle()) {
             element.classList.add("map__cell--obstacle");
         }
 
@@ -44,8 +44,8 @@ class Cell {
 
             const image = document.createElement("img");
             image.classList.add("map__cell-sprite");
-            image.src = this.contenu.getChemin();
-            image.alt = this.contenu.getNom();
+            image.src = this.contenu.getpath();
+            image.alt = this.contenu.getname();
 
             element.appendChild(image);
         }
@@ -56,16 +56,16 @@ class Cell {
 
 
 class Column {
-    constructor(taille, obstacleRate) {
-        this.taille = taille;
+    constructor(size, obstacleRate) {
+        this.size = size;
         this.obstacleRate = obstacleRate;
         this.cellules = [];
 
-        this.creerCellules();
+        this.createCells();
     }
 
-    creerCellules() {
-        for (let i = 0; i < this.taille; i++) {
+    createCells() {
+        for (let i = 0; i < this.size; i++) {
             const cellule = new Cell(this.obstacleRate);
             this.cellules.push(cellule);
         }
@@ -75,9 +75,7 @@ class Column {
         return this.cellules[index];
     }
 
-    getCellules() {
-        return this.cellules;
-    }
+
 
     render(container) {
         this.cellules.forEach(cellule => {
@@ -88,24 +86,24 @@ class Column {
 
 
 class Map {
-    constructor(containerId, taille, obstacleRate, nombreArmes) {
+    constructor(containerId, size, obstacleRate, numberWeapons) {
         this.container = document.getElementById(containerId);
-        this.taille = taille;
+        this.size = size;
         this.obstacleRate = obstacleRate;
-        this.nombreArmes = nombreArmes;
+        this.numberWeapons = numberWeapons;
 
         this.colonnes = [];
 
         this.creerColonnes();
-        this.placerArmes();
-        this.placerPersonnages();
+        this.placeWeapons();
+        this.placeCharacters();
         this.render();
     }
 
     creerColonnes() {
-        for (let i = 0; i < this.taille; i++) {
+        for (let i = 0; i < this.size; i++) {
             const colonne = new Column(
-                this.taille,
+                this.size,
                 this.obstacleRate
             );
 
@@ -113,39 +111,39 @@ class Map {
         }
     }
 
-    placerArmes() {
-        let armesPlacees = 0;
+    placeWeapons() {
+        let weapPlacees = 0;
 
-        while (armesPlacees < this.nombreArmes) {
-            const x = Math.floor(Math.random() * this.taille);
-            const y = Math.floor(Math.random() * this.taille);
+        while (weapPlacees < this.numberWeapons) {
+            const x = Math.floor(Math.random() * this.size);
+            const y = Math.floor(Math.random() * this.size);
 
             const cellule = this.colonnes[x].getCellule(y);
 
-            if (cellule.estVide()) {
-                // Pour l'instant on réserve simplement
+            if (cellule.isVoid()) {
+                // Pour l'instant, on réserve simplement
                 // l'emplacement de l'arme.
-                cellule.placerArme("arme");
+                cellule.placeWeapon("arme");
 
-                armesPlacees++;
+                weapPlacees++;
             }
         }
     }
 
-    placerPersonnages() {
-        const personnages = recupererPersonnagesSelectionnes();
+    placeCharacters() {
+        const characters = retrieveSelectedCharacters();
 
-        personnages.forEach(personnage => {
-            let personnagePlace = false;
+        characters.forEach(characters => {
+            let charactersPlace = false;
 
-            while (!personnagePlace) {
-                const x = Math.floor(Math.random() * this.taille);
-                const y = Math.floor(Math.random() * this.taille);
+            while (!charactersPlace) {
+                const x = Math.floor(Math.random() * this.size);
+                const y = Math.floor(Math.random() * this.size);
                 const cellule = this.getCellule(x, y);
 
-                if (cellule.estVide()) {
-                    cellule.placerPersonnage(personnage);
-                    personnagePlace = true;
+                if (cellule.isVoid()) {
+                    cellule.placeCharacter(characters);
+                    charactersPlace = true;
                 }
             }
         });
@@ -154,9 +152,9 @@ class Map {
     getCellule(x, y) {
         if (
             x < 0 ||
-            x >= this.taille ||
+            x >= this.size ||
             y < 0 ||
-            y >= this.taille
+            y >= this.size
         ) {
             return null;
         }
@@ -169,9 +167,9 @@ class Map {
 
         this.container.style.display = "grid";
         this.container.style.gridTemplateColumns =
-            `repeat(${this.taille}, minmax(0, 1fr))`;
+            `repeat(${this.size}, minmax(0, 1fr))`;
         this.container.style.gridTemplateRows =
-            `repeat(${this.taille}, minmax(0, 1fr))`;
+            `repeat(${this.size}, minmax(0, 1fr))`;
 
         this.colonnes.forEach(colonne => {
             colonne.render(this.container);
