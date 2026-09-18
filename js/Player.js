@@ -1,82 +1,82 @@
-class Personnage {
-    constructor(fichier) {
-        this.fichier = fichier;
-        this.name = fichier.replace(/\.png$/i, "");
-        this.path = `personnages/${fichier}`;
+class Character {
+    constructor(file) {
+        this.file = file;
+        this.name = file.replace(/\.png$/i, "");
+        this.path = `characters/${file}`;
     }
 
-    getFichier() {
-        return this.fichier;
+    getFile() {
+        return this.file;
     }
 
-    getname() {
+    getName() {
         return this.name;
     }
 
-    getpath() {
+    getPath() {
         return this.path;
     }
 }
 
-class SelecteurPersonnage {
-    constructor(selectId, previewId, personnages) {
+class CharacterSelector {
+    constructor(selectId, previewId, characters) {
         this.select = document.getElementById(selectId);
         this.preview = document.getElementById(previewId);
-        this.personnages = personnages;
-        this.initialiser();
+        this.characters = characters;
+        this.initialize();
     }
 
-    initialiser() {
+    initialize() {
         if (!this.select) {
-            console.error(`Sélecteur introuvable : ${this.select}`);
+            console.error(`Selector not found: ${this.select}`);
             return;
         }
-        this.remplirSelecteur();
-        this.ajouterEvenement();
+        this.populateSelector();
+        this.addEventListeners();
     }
 
-    remplirSelecteur() {
+    populateSelector() {
         this.select.replaceChildren();
 
-        this.personnages.forEach(personnage => {
+        this.characters.forEach(character => {
             const option = document.createElement("option");
-            option.value = personnage.getFichier();
-            option.textContent = personnage.getname();
+            option.value = character.getFile();
+            option.textContent = character.getName();
             this.select.appendChild(option);
         });
     }
 
-    ajouterEvenement() {
+    addEventListeners() {
         this.select.addEventListener("change", () => {
-            this.selectionnerPersonnage();
+            this.selectCharacter();
         });
     }
 
-    selectionnerPersonnage() {
-        const fichier = this.select.value;
-        if (!fichier) {
+    selectCharacter() {
+        const file = this.select.value;
+        if (!file) {
             this.preview.removeAttribute("src");
             this.preview.removeAttribute("alt");
             return;
         }
-        const personnage = this.personnages.find(personnage => personnage.getFichier() === fichier);
-        if (!personnage) {
+        const character = this.characters.find(character => character.getFile() === file);
+        if (!character) {
             return;
         }
-        this.preview.src = personnage.getChemin();
-        this.preview.alt = personnage.getname();
+        this.preview.src = character.getPath();
+        this.preview.alt = character.getName();
     }
 }
 
-class GestionnairePersonnages {
+class CharacterManager {
     constructor() {
-        this.personnages = [];
-        this.chargerPersonnages();
-        this.initialiserSelecteurs();
+        this.characters = [];
+        this.loadCharacters();
+        this.initializeSelectors();
     }
 
-    chargerPersonnages() {
-        const fichiers = [
+    loadCharacters() {
+        const files = [
             "Jules.png",
             "Noah.png",
             "Wissem.png",
@@ -89,101 +89,101 @@ class GestionnairePersonnages {
             "Nabil.png",
             "Philippe.png"
         ];
-        fichiers.forEach(fichier => {
-            this.personnages.push(new Personnage(fichier));
+        files.forEach(file => {
+            this.characters.push(new Character(file));
         });
     }
 
-    initialiserSelecteurs() {
-        new SelecteurPersonnage("player1", "player1-preview", this.personnages);
-        new SelecteurPersonnage("player2", "player2-preview", this.personnages);
+    initializeSelectors() {
+        new CharacterSelector("player1", "player1-preview", this.characters);
+        new CharacterSelector("player2", "player2-preview", this.characters);
     }
 
-    getPersonnages() {
-        return this.personnages;
+    getCharacters() {
+        return this.characters;
     }
 
-    getPersonnage(fichier) {
-        return this.personnages.find(personnage => {
-            return personnage.getFichier() === fichier;
+    getCharacter(file) {
+        return this.characters.find(character => {
+            return character.getFile() === file;
         });
     }
 }
 
-class Jeu {
+class Game {
     constructor() {
-        this.gestionnairePersonnages = new GestionnairePersonnages();
+        this.characterManager = new CharacterManager();
     }
 
-    demarrer() {
+    start() {
         console.log("Dynedoc Fatality start.");
-        console.log(`${this.gestionnairePersonnages.getPersonnages().length} characters available.`);
+        console.log(`${this.characterManager.getCharacters().length} characters available.`);
     }
 }
 
-const CLE_STOCKAGE_JOUEUR1 = "Dynedoc_joueur1";
-const CLE_STOCKAGE_JOUEUR2 = "Dynedoc_joueur2";
+const PLAYER1_STORAGE_KEY = "Dynedoc_player1";
+const PLAYER2_STORAGE_KEY = "Dynedoc_player2";
 
 function retrieveSelectedCharacters() {
-    const gestionnaire = new GestionnairePersonnages();
-    const fichiers = [
-        localStorage.getItem(CLE_STOCKAGE_JOUEUR1),
-        localStorage.getItem(CLE_STOCKAGE_JOUEUR2)
+    const characterManager = new CharacterManager();
+    const files = [
+        localStorage.getItem(PLAYER1_STORAGE_KEY),
+        localStorage.getItem(PLAYER2_STORAGE_KEY)
     ];
 
-    return fichiers.map(fichier => {
-        return gestionnaire.getPersonnage(fichier);
-    }).filter(personnage => personnage);
+    return files.map(file => {
+        return characterManager.getCharacter(file);
+    }).filter(character => character);
 }
 
-function afficherNomsJoueurs() {
-    const gestionnaire = new GestionnairePersonnages();
-    const joueurs = [
+function displayPlayerNames() {
+    const characterManager = new CharacterManager();
+    const players = [
         {
-            fichier: localStorage.getItem(CLE_STOCKAGE_JOUEUR1),
-            selecteur: ".player-card--p1 .player-card__name"
+            file: localStorage.getItem(PLAYER1_STORAGE_KEY),
+            selector: ".player-card--p1 .player-card__name"
         },
         {
-            fichier: localStorage.getItem(CLE_STOCKAGE_JOUEUR2),
-            selecteur: ".player-card--p2 .player-card__name"
+            file: localStorage.getItem(PLAYER2_STORAGE_KEY),
+            selector: ".player-card--p2 .player-card__name"
         }
     ];
 
-    joueurs.forEach(joueur => {
-        const elementNom = document.querySelector(joueur.selecteur);
-        const personnage = gestionnaire.getPersonnage(joueur.fichier);
+    players.forEach(player => {
+        const nameElement = document.querySelector(player.selector);
+        const character = characterManager.getCharacter(player.file);
 
-        if (elementNom && personnage) {
-            elementNom.textContent = personnage.getname();
+        if (nameElement && character) {
+            nameElement.textContent = character.getName();
         }
     });
 }
 
-function demarrerPartie() {
+function startGame() {
     const select1 = document.getElementById("player1");
     const select2 = document.getElementById("player2");
 
     if (!select1 || !select2) {
-        console.error("Sélecteurs de personnages introuvables.");
+        console.error("Character selectors not found.");
         return;
     }
 
-    const fichier1 = select1.value;
-    const fichier2 = select2.value;
+    const file1 = select1.value;
+    const file2 = select2.value;
 
-    if (!fichier1 || !fichier2) {
-        alert("Choisissez un personnage pour chaque joueur avant de lancer la partie.");
+    if (!file1 || !file2) {
+        alert("Choose a character for each player before starting the game.");
         return;
     }
 
-    localStorage.setItem(CLE_STOCKAGE_JOUEUR1, fichier1);
-    localStorage.setItem(CLE_STOCKAGE_JOUEUR2, fichier2);
+    localStorage.setItem(PLAYER1_STORAGE_KEY, file1);
+    localStorage.setItem(PLAYER2_STORAGE_KEY, file2);
 
     window.location.href = "index.html";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    const jeu = new Jeu();
-    jeu.demarrer();
-    afficherNomsJoueurs();
+    const game = new Game();
+    game.start();
+    displayPlayerNames();
 });

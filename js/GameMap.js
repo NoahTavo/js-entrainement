@@ -1,13 +1,13 @@
 class Cell {
     constructor(obstacleRate) {
         this.obstacleRate = obstacleRate;
-        this.contenu = this.Selectcontent();
+        this.content = this.selectContent();
     }
 
-    Selectcontent() {
-        const aleatoire = Math.random();
+    selectContent() {
+        const random = Math.random();
 
-        if (aleatoire < this.obstacleRate) {
+        if (random < this.obstacleRate) {
             return "obstacle";
         }
 
@@ -15,19 +15,19 @@ class Cell {
     }
 
     isObstacle() {
-        return this.contenu === "obstacle";
+        return this.content === "obstacle";
     }
 
     isVoid() {
-        return this.contenu === "void";
+        return this.content === "void";
     }
 
-    placeWeapon(arme) {
-        this.contenu = arme;
+    placeWeapon(weapon) {
+        this.content = weapon;
     }
 
-    placeCharacter(personnage) {
-        this.contenu = personnage;
+    placeCharacter(character) {
+        this.content = character;
     }
 
     render() {
@@ -39,13 +39,13 @@ class Cell {
             element.classList.add("map__cell--obstacle");
         }
 
-        if (this.contenu instanceof Personnage) {
-            element.classList.add("map__cell--personnage");
+        if (this.content instanceof Character) {
+            element.classList.add("map__cell--character");
 
             const image = document.createElement("img");
             image.classList.add("map__cell-sprite");
-            image.src = this.contenu.getpath();
-            image.alt = this.contenu.getname();
+            image.src = this.content.getPath();
+            image.alt = this.content.getName();
 
             element.appendChild(image);
         }
@@ -56,76 +56,68 @@ class Cell {
 
 
 class Column {
-    constructor(size, obstacleRate) {
-        this.size = size;
+    constructor(rows, obstacleRate) {
+        this.rows = rows;
         this.obstacleRate = obstacleRate;
-        this.cellules = [];
+        this.cells = [];
 
         this.createCells();
     }
 
     createCells() {
-        for (let i = 0; i < this.size; i++) {
-            const cellule = new Cell(this.obstacleRate);
-            this.cellules.push(cellule);
+        for (let i = 0; i < this.rows; i++) {
+            const cell = new Cell(this.obstacleRate);
+            this.cells.push(cell);
         }
     }
 
-    getCellule(index) {
-        return this.cellules[index];
+    getCell(index) {
+        return this.cells[index];
     }
 
-
-
     render(container) {
-        this.cellules.forEach(cellule => {
-            container.appendChild(cellule.render());
+        this.cells.forEach(cell => {
+            container.appendChild(cell.render());
         });
     }
 }
 
 
 class Map {
-    constructor(containerId, size, obstacleRate, numberWeapons) {
-        this.container = document.getElementById(containerId);
-        this.size = size;
+    constructor(columns, rows, obstacleRate, numberWeapons) {
+        this.columns = columns;
+        this.rows = rows;
         this.obstacleRate = obstacleRate;
         this.numberWeapons = numberWeapons;
 
-        this.colonnes = [];
+        this.columnList = [];
 
-        this.creerColonnes();
+        this.createColumns();
         this.placeWeapons();
         this.placeCharacters();
-        this.render();
     }
 
-    creerColonnes() {
-        for (let i = 0; i < this.size; i++) {
-            const colonne = new Column(
-                this.size,
-                this.obstacleRate
-            );
-
-            this.colonnes.push(colonne);
+    createColumns() {
+        for (let i = 0; i < this.columns; i++) {
+            const column = new Column(this.rows, this.obstacleRate);
+            this.columnList.push(column);
         }
     }
 
     placeWeapons() {
-        let weapPlacees = 0;
+        let weaponsPlaced = 0;
 
-        while (weapPlacees < this.numberWeapons) {
-            const x = Math.floor(Math.random() * this.size);
-            const y = Math.floor(Math.random() * this.size);
+        while (weaponsPlaced < this.numberWeapons) {
+            const x = Math.floor(Math.random() * this.columns);
+            const y = Math.floor(Math.random() * this.rows);
 
-            const cellule = this.colonnes[x].getCellule(y);
+            const cell = this.columnList[x].getCell(y);
 
-            if (cellule.isVoid()) {
-                // Pour l'instant, on réserve simplement
-                // l'emplacement de l'arme.
-                cellule.placeWeapon("arme");
+            if (cell.isVoid()) {
+                // For now, we simply reserve the weapon's location.
+                cell.placeWeapon("weapon");
 
-                weapPlacees++;
+                weaponsPlaced++;
             }
         }
     }
@@ -133,56 +125,54 @@ class Map {
     placeCharacters() {
         const characters = retrieveSelectedCharacters();
 
-        characters.forEach(characters => {
-            let charactersPlace = false;
+        characters.forEach(character => {
+            let characterPlaced = false;
 
-            while (!charactersPlace) {
-                const x = Math.floor(Math.random() * this.size);
-                const y = Math.floor(Math.random() * this.size);
-                const cellule = this.getCellule(x, y);
+            while (!characterPlaced) {
+                const x = Math.floor(Math.random() * this.columns);
+                const y = Math.floor(Math.random() * this.rows);
+                const cell = this.getCell(x, y);
 
-                if (cellule.isVoid()) {
-                    cellule.placeCharacter(characters);
-                    charactersPlace = true;
+                if (cell.isVoid()) {
+                    cell.placeCharacter(character);
+                    characterPlaced = true;
                 }
             }
         });
     }
 
-    getCellule(x, y) {
+    getCell(x, y) {
         if (
             x < 0 ||
-            x >= this.size ||
+            x >= this.columns ||
             y < 0 ||
-            y >= this.size
+            y >= this.rows
         ) {
             return null;
         }
 
-        return this.colonnes[x].getCellule(y);
+        return this.columnList[x].getCell(y);
     }
 
-    render() {
-        this.container.innerHTML = "";
+    render(container) {
+        container.innerHTML = "";
 
-        this.container.style.display = "grid";
-        this.container.style.gridTemplateColumns =
-            `repeat(${this.size}, minmax(0, 1fr))`;
-        this.container.style.gridTemplateRows =
-            `repeat(${this.size}, minmax(0, 1fr))`;
+        container.style.display = "grid";
+        container.style.gridTemplateColumns =
+            `repeat(${this.columns}, minmax(0, 1fr))`;
+        container.style.gridTemplateRows =
+            `repeat(${this.rows}, minmax(0, 1fr))`;
 
-        this.colonnes.forEach(colonne => {
-            colonne.render(this.container);
+        this.columnList.forEach(column => {
+            column.render(container);
         });
     }
 }
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    const map = new Map(
-        "map",
-        10,
-        0.15,
-        4
-    );
+    const map = new Map(10, 10, 0.15, 4);
+
+    const container = document.getElementById("map");
+    map.render(container);
 });
