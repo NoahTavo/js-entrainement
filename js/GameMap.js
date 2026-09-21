@@ -1,66 +1,6 @@
-class Cell {
-    constructor(obstacleRate) {
-        this.obstacleRate = obstacleRate;
-        this.content = this.selectContent();
-    }
-
-    selectContent() {
-        const random = Math.random();
-
-        if (random < this.obstacleRate) {
-            return "obstacle";
-        }
-
-        return "void";
-    }
-
-    isObstacle() {
-        return this.content === "obstacle";
-    }
-
-    isVoid() {
-        return this.content === "void";
-    }
-
-    placeWeapon(weapon) {
-        this.content = weapon;
-    }
-
-    placeCharacter(character) {
-        this.content = character;
-    }
-
-    render() {
-        const element = document.createElement("div");
-        element.classList.add("map__cell");
-
-        if (this.isObstacle()) {
-            element.classList.add("map__cell--obstacle");
-        }
-
-        if (this.content instanceof Character) {
-            element.classList.add("map__cell--personnage"); // aligné sur le CSS existant
-
-            const image = document.createElement("img");
-            image.classList.add("map__cell-sprite");
-            image.src = this.content.getPath();
-            image.alt = this.content.getName();
-
-            element.appendChild(image);
-        }
-
-        if (this.content instanceof Weapon) {
-            element.classList.add("map__cell--arme");
-            element.appendChild(this.content.render()); // Weapon.render() existe déjà dans Weapon.js
-        }
-
-        return element;
-    }
-}
-
-
 class Column {
-    constructor(rows, obstacleRate) {
+    constructor(x, rows, obstacleRate) {
+        this.x = x;
         this.rows = rows;
         this.obstacleRate = obstacleRate;
         this.cells = [];
@@ -69,8 +9,8 @@ class Column {
     }
 
     createCells() {
-        for (let i = 0; i < this.rows; i++) {
-            const cell = new Cell(this.obstacleRate);
+        for (let y = 0; y < this.rows; y++) {
+            const cell = new Cell(this.x, y, this.obstacleRate);
             this.cells.push(cell);
         }
     }
@@ -103,7 +43,7 @@ class Map {
 
     createColumns() {
         for (let i = 0; i < this.columns; i++) {
-            const column = new Column(this.rows, this.obstacleRate);
+            const column = new Column(i, this.rows, this.obstacleRate);
             this.columnList.push(column);
         }
     }
@@ -118,7 +58,7 @@ class Map {
 
                 const cell = this.columnList[x].getCell(y);
 
-                if (cell.isVoid()) {
+                if (cell.isEmpty()) {
                     cell.placeWeapon(weaponType);
                     weaponPlaced = true;
                 }
@@ -137,7 +77,7 @@ class Map {
                 const y = Math.floor(Math.random() * this.rows);
                 const cell = this.getCell(x, y);
 
-                if (cell.isVoid()) {
+                if (cell.isEmpty()) {
                     cell.placeCharacter(character);
                     characterPlaced = true;
                 }
