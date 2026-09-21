@@ -2,7 +2,7 @@ class Character {
     constructor(file) {
         this.file = file;
         this.name = file.replace(/\.png$/i, "");
-        this.path = `characters/${file}`;
+        this.path = `assets/characters/${file}`;
     }
 
     getFile() {

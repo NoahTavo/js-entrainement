@@ -32,11 +32,11 @@ class Weapon {
 
 //------------------------------------------ARME------------------------------------------------------------------------
 const WEAPON_TYPES = [
-    new Weapon("sword", "Knife", 15, "weapons/sword.svg"),
-    new Weapon("gun", "Gun", 20, "weapons/gun-military.svg"),
-    new Weapon("rocket", "Rocket", 50, "weapons/missile.svg"),
-    new Weapon("kalashnikov", "Kalashnikov", 25, "weapons/kalashnikov.svg"),
+    new Weapon("sword", "Knife", 15, "assets/weapons/sword.svg"),
+    new Weapon("gun", "Gun", 20, "assets/weapons/gun-military.svg"),
+    new Weapon("rocket", "Rocket", 50, "assets/weapons/missile.svg"),
+    new Weapon("kalashnikov", "Kalashnikov", 25, "assets/weapons/kalashnikov.svg"),
 ];
 //----------------------------------------------------------------------------------------------------------------------
 // L'arme de départ, équipée par les deux joueurs avant tout ramassage.
-const DEFAULT_WEAPON = new Weapon("fists", "Poings", 5, "weapons/poings.svg");
+const DEFAULT_WEAPON = new Weapon("fists", "Poings", 5, "assets/weapons/poings.svg");
