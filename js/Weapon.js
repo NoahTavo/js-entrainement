@@ -39,4 +39,4 @@ const WEAPON_TYPES = [
 ];
 //----------------------------------------------------------------------------------------------------------------------
 // L'arme de départ, équipée par les deux joueurs avant tout ramassage.
-const DEFAULT_WEAPON = new Weapon("fists", "Poings", 5, "assets/weapons/poings.svg");
+const DEFAULT_WEAPON = new Weapon("fists", "Poings", 10, "assets/weapons/poings.svg");
