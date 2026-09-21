@@ -32,7 +32,6 @@ class Cell {
 
     render() {
         const element = document.createElement("div");
-
         element.classList.add("map__cell");
 
         if (this.isObstacle()) {
@@ -40,7 +39,7 @@ class Cell {
         }
 
         if (this.content instanceof Character) {
-            element.classList.add("map__cell--character");
+            element.classList.add("map__cell--personnage"); // aligné sur le CSS existant
 
             const image = document.createElement("img");
             image.classList.add("map__cell-sprite");
@@ -48,6 +47,11 @@ class Cell {
             image.alt = this.content.getName();
 
             element.appendChild(image);
+        }
+
+        if (this.content instanceof Weapon) {
+            element.classList.add("map__cell--arme");
+            element.appendChild(this.content.render()); // Weapon.render() existe déjà dans Weapon.js
         }
 
         return element;
@@ -105,21 +109,21 @@ class Map {
     }
 
     placeWeapons() {
-        let weaponsPlaced = 0;
+        WEAPON_TYPES.forEach(weaponType => {
+            let weaponPlaced = false;
 
-        while (weaponsPlaced < this.numberWeapons) {
-            const x = Math.floor(Math.random() * this.columns);
-            const y = Math.floor(Math.random() * this.rows);
+            while (!weaponPlaced) {
+                const x = Math.floor(Math.random() * this.columns);
+                const y = Math.floor(Math.random() * this.rows);
 
-            const cell = this.columnList[x].getCell(y);
+                const cell = this.columnList[x].getCell(y);
 
-            if (cell.isVoid()) {
-                // For now, we simply reserve the weapon's location.
-                cell.placeWeapon("weapon");
-
-                weaponsPlaced++;
+                if (cell.isVoid()) {
+                    cell.placeWeapon(weaponType);
+                    weaponPlaced = true;
+                }
             }
-        }
+        });
     }
 
     placeCharacters() {
