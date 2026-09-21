@@ -235,6 +235,9 @@ kbd {
 .map__cell--personnage {
     position: relative;
 }
+.map__cell--arme {
+    position: relative;
+}
 
 .map__cell-sprite {
     width: 100%;
