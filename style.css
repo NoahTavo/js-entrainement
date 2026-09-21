@@ -16,7 +16,6 @@
 body {
     margin: 0;
     min-height: 100vh;
-    background: var(--bg);
     color: var(--text);
     font-family: 'Segoe UI', system-ui, sans-serif;
     display: flex;
@@ -24,6 +23,11 @@ body {
     align-items: center;
     gap: 1.25rem;
     padding: 1.5rem 1rem 2.5rem;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),url("assets/etoile.png");
+    background-repeat: no-repeat; /* Empêche la répétition de l'image */
+    background-position: center;
+    background-size: cover;
+    backdrop-filter: blur(5px);
 }
 
 /* ---------- En-tête ---------- */
@@ -53,9 +57,13 @@ body {
     display: grid;
     gap: 2px;
     background: var(--line);
-    border: 2px solid var(--line);
+    border: 2px solid  #ffd21c;
     border-radius: 6px;
     padding: 2px;
+    width: min(1100px, 90vw);
+    height: auto;
+    aspect-ratio: 1 / 1;
+
 }
 
 .cell {
@@ -145,4 +153,95 @@ kbd {
     border-radius: 4px;
     padding: 0.1rem 0.4rem;
     margin-right: 0.15rem;
+}
+.map__cell {
+    aspect-ratio: 1 / 1;
+    border: 1px solid #333;
+}
+.map__cell--obstacle {
+    background: #444;
+}
+.menu-item{
+    width: 130px;
+}
+.menu-item.active {
+    color: white;
+
+    background:
+            linear-gradient(
+                    90deg,
+                    #351000,
+                    #8f2700,
+                    #351000
+            );
+
+    border: 3px solid var(--orange);
+
+    box-shadow:
+            0 0 0 1px #230000,
+            0 0 15px rgba(251,86,7,.55),
+            inset 0 0 15px rgba(251,86,7,.3);
+
+    height: 42px;
+
+
+    transform: scale(1.04);
+}
+
+
+.menu-item.active::before {
+    content: "▶";
+
+    position: absolute;
+
+    left: 12px;
+
+    color: var(--orange);
+
+    font-size: 13px;
+
+    text-shadow:
+            0 0 8px var(--orange);
+}
+
+
+.menu-item.active::after {
+    content: "◀";
+
+    position: absolute;
+
+    right: 12px;
+
+    color: var(--orange);
+
+    font-size: 13px;
+
+    text-shadow:
+            0 0 8px var(--orange);
+}
+
+
+.menu-item:hover {
+    color: var(--orange);
+
+    background:
+            linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(251,86,7,.3),
+                    transparent
+            );
+}
+.map__cell--personnage {
+    position: relative;
+}
+.map__cell--arme {
+    position: relative;
+}
+
+.map__cell-sprite {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2px;
 }
