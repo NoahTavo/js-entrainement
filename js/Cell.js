@@ -1,43 +1,55 @@
 class Cell {
     constructor(x, y, obstacleRate) {
-        this.x = x;
-        this.y = y;
-        this.obstacleRate = obstacleRate;
-        this.content = this.selectContent();
+        this._x = x;
+        this._y = y;
+        this._obstacleRate = obstacleRate;
+        this._content = this.selectContent();
     }
 
-    getX() {
-        return this.x;
+    get x() {
+        return this._x;
     }
 
-    getY() {
-        return this.y;
+    get y() {
+        return this._y;
+    }
+
+    get content() {
+        return this._content;
+    }
+
+    set content(value) {
+        this._content = value;
     }
 
     selectContent() {
         const random = Math.random();
 
-        if (random < this.obstacleRate) {
+        if (random < this._obstacleRate) {
             return "obstacle";
         }
 
         return "empty";
     }
 
-    isObstacle() {
-        return this.content === "obstacle";
+    get isObstacle() {
+        return this._content === "obstacle";
     }
 
-    isEmpty() {
-        return this.content === "empty";
+    get isEmpty() {
+        return this._content === "empty";
     }
 
     placeWeapon(weapon) {
-        this.content = weapon;
+        this._content = weapon;
     }
 
     placeCharacter(character) {
-        this.content = character;
+        this._content = character;
+    }
+
+    clear() {
+        this._content = "empty";
     }
 
     render() {
@@ -45,12 +57,13 @@ class Cell {
         element.classList.add("map__cell");
         element.dataset.x = this.x;
         element.dataset.y = this.y;
+        element.dataset.testid = `map-cell-${this.x}-${this.y}`;
 
-        if (this.isObstacle()) {
+        if (this.isObstacle) {
             element.classList.add("map__cell--obstacle");
         }
 
-        if (this.content instanceof Character) {
+        if (this.content instanceof Player) {
             element.classList.add("map__cell--personnage"); // aligné sur le CSS existant
 
             const image = document.createElement("img");
@@ -63,7 +76,7 @@ class Cell {
 
         if (this.content instanceof Weapon) {
             element.classList.add("map__cell--arme");
-            element.appendChild(this.content.render()); // Weapon.render() existe déjà dans Weapon.js
+            element.appendChild(this.content.render());
         }
 
         return element;
