@@ -40,17 +40,22 @@ class Cell {
         this.content = character;
     }
 
+    clear() {
+        this.content = "empty";
+    }
+
     render() {
         const element = document.createElement("div");
         element.classList.add("map__cell");
         element.dataset.x = this.x;
         element.dataset.y = this.y;
+        element.dataset.testid = `map-cell-${this.x}-${this.y}`;
 
         if (this.isObstacle()) {
             element.classList.add("map__cell--obstacle");
         }
 
-        if (this.content instanceof Character) {
+        if (this.content instanceof Player) {
             element.classList.add("map__cell--personnage"); // aligné sur le CSS existant
 
             const image = document.createElement("img");
@@ -63,7 +68,7 @@ class Cell {
 
         if (this.content instanceof Weapon) {
             element.classList.add("map__cell--arme");
-            element.appendChild(this.content.render()); // Weapon.render() existe déjà dans Weapon.js
+            element.appendChild(this.content.render());
         }
 
         return element;
