@@ -9,6 +9,8 @@
     --obstacle: #2f3242;
     --weapon: #f2c14e;
     --danger: #ff5c5c;
+    --orange: #fb5607;
+    --blue: #0877c9;
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +29,6 @@ body {
     background-repeat: no-repeat; /* Empêche la répétition de l'image */
     background-position: center;
     background-size: cover;
-    backdrop-filter: blur(5px);
 }
 
 /* ---------- En-tête ---------- */
@@ -244,4 +245,79 @@ kbd {
     height: 100%;
     object-fit: contain;
     padding: 2px;
+}
+
+/* ---------- Cases de déplacement surlignées ---------- */
+.map__cell--movable {
+    background: rgba(62, 217, 200, 0.25);
+    box-shadow: inset 0 0 0 2px var(--p1);
+    cursor: pointer;
+}
+
+.map__cell--movable:hover {
+    background: rgba(62, 217, 200, 0.5);
+}
+
+/* ---------- Joueur actif ---------- */
+.map__cell--active {
+    box-shadow: inset 0 0 0 3px var(--weapon);
+}
+
+.player-card--active {
+    border-color: var(--weapon);
+    box-shadow: 0 0 14px rgba(242, 193, 78, 0.55);
+}
+
+/* ---------- Actions ---------- */
+.combat-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.combat-actions .menu-item[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Écran de victoire ---------- */
+.game-over {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 9, 0.82);
+}
+
+.game-over__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+    text-align: center;
+    padding: 2.5rem 3rem;
+    background: var(--bg-panel);
+    border: 2px solid var(--weapon);
+    border-radius: 10px;
+}
+
+.game-over__title {
+    margin: 0;
+    font-size: 2.2rem;
+    color: var(--weapon);
+    text-shadow: 0 0 18px rgba(242, 193, 78, 0.6);
+}
+
+.game-over__subtitle {
+    margin: 0;
+    color: var(--text-dim);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
 }
