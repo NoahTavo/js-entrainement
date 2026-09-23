@@ -1,8 +1,3 @@
-// ---------------------------------------------------------------------------
-// constants.js — tous les réglages du jeu au même endroit.
-// Chargé en premier : il ne dépend d'aucun autre fichier.
-// ---------------------------------------------------------------------------
-
 // ----- Carte -----
 const GRID_COLUMNS = 10;
 const GRID_ROWS = 10;
