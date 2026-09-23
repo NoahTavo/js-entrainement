@@ -27,7 +27,7 @@ class Column {
 }
 
 
-class Map {
+class GameMap {
     constructor(columns, rows, obstacleRate, numberWeapons) {
         this.columns = columns;
         this.rows = rows;
@@ -68,21 +68,51 @@ class Map {
 
     placeCharacters() {
         const characters = retrieveSelectedCharacters();
+        const placedPlayers = [];
 
         characters.forEach(character => {
-            let characterPlaced = false;
+            let attempts = 0;
 
-            while (!characterPlaced) {
+            while (attempts < MAX_GENERATION_ATTEMPTS) {
+                attempts += 1;
+
                 const x = Math.floor(Math.random() * this.columns);
                 const y = Math.floor(Math.random() * this.rows);
                 const cell = this.getCell(x, y);
 
-                if (cell.isEmpty()) {
-                    cell.placeCharacter(character);
-                    characterPlaced = true;
+                // Cases vides uniquement, et jamais adjacentes à un joueur
+                // les deux joueurs ne démarrent pas côte à côte.
+                if (!cell || !cell.isEmpty() || this.isAdjacentToPlayer(cell, placedPlayers)) {
+                    continue;
                 }
+
+                const player = new Player(character, x, y);
+                cell.placeCharacter(player);
+                placedPlayers.push(player);
+                break;
             }
         });
+    }
+
+    isAdjacentToPlayer(cell, players) {
+        return players.some(player => {
+            return Math.abs(player.x - cell.x) + Math.abs(player.y - cell.y) <= 1;
+        });
+    }
+
+    // Les joueurs posés sur la carte, dans l'ordre (joueur 1 d'abord).
+    getPlayers() {
+        const players = [];
+
+        this.columnList.forEach(column => {
+            column.cells.forEach(cell => {
+                if (cell.content instanceof Player) {
+                    players.push(cell.content);
+                }
+            });
+        });
+
+        return players;
     }
 
     getCell(x, y) {
@@ -114,9 +144,4 @@ class Map {
 }
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    const map = new Map(10, 10, 0.15, 4);
-
-    const container = document.getElementById("map");
-    map.render(container);
-});
+// La création de la carte et le rendu sont déclenchés par main.js (le lanceur).
