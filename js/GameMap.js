@@ -1,32 +1,3 @@
-class Column {
-    constructor(x, rows, obstacleRate) {
-        this.x = x;
-        this.rows = rows;
-        this.obstacleRate = obstacleRate;
-        this.cells = [];
-
-        this.createCells();
-    }
-
-    createCells() {
-        for (let y = 0; y < this.rows; y++) {
-            const cell = new Cell(this.x, y, this.obstacleRate);
-            this.cells.push(cell);
-        }
-    }
-
-    getCell(index) {
-        return this.cells[index];
-    }
-
-    render(container) {
-        this.cells.forEach(cell => {
-            container.appendChild(cell.render());
-        });
-    }
-}
-
-
 class GameMap {
     constructor(columns, rows, obstacleRate, numberWeapons) {
         this.columns = columns;
@@ -34,18 +5,32 @@ class GameMap {
         this.obstacleRate = obstacleRate;
         this.numberWeapons = numberWeapons;
 
-        this.columnList = [];
+        this.cells = [];
 
-        this.createColumns();
+        this.createCells();
         this.placeWeapons();
         this.placeCharacters();
     }
 
-    createColumns() {
-        for (let i = 0; i < this.columns; i++) {
-            const column = new Column(i, this.rows, this.obstacleRate);
-            this.columnList.push(column);
+    createCells() {
+        for (let x = 0; x < this.columns; x++) {
+            for (let y = 0; y < this.rows; y++) {
+                this.cells.push(new Cell(x, y, this.obstacleRate));
+            }
         }
+    }
+
+    getCell(x, y) {
+        if (
+            x < 0 ||
+            x >= this.columns ||
+            y < 0 ||
+            y >= this.rows
+        ) {
+            return null;
+        }
+
+        return this.cells[x * this.rows + y];
     }
 
     placeWeapons() {
@@ -56,9 +41,9 @@ class GameMap {
                 const x = Math.floor(Math.random() * this.columns);
                 const y = Math.floor(Math.random() * this.rows);
 
-                const cell = this.columnList[x].getCell(y);
+                const cell = this.getCell(x, y);
 
-                if (cell.isEmpty()) {
+                if (cell.isEmpty) {
                     cell.placeWeapon(weaponType);
                     weaponPlaced = true;
                 }
@@ -82,7 +67,7 @@ class GameMap {
 
                 // Cases vides uniquement, et jamais adjacentes à un joueur
                 // les deux joueurs ne démarrent pas côte à côte.
-                if (!cell || !cell.isEmpty() || this.isAdjacentToPlayer(cell, placedPlayers)) {
+                if (!cell || !cell.isEmpty || this.isAdjacentToPlayer(cell, placedPlayers)) {
                     continue;
                 }
 
@@ -102,30 +87,9 @@ class GameMap {
 
     // Les joueurs posés sur la carte, dans l'ordre (joueur 1 d'abord).
     getPlayers() {
-        const players = [];
-
-        this.columnList.forEach(column => {
-            column.cells.forEach(cell => {
-                if (cell.content instanceof Player) {
-                    players.push(cell.content);
-                }
-            });
-        });
-
-        return players;
-    }
-
-    getCell(x, y) {
-        if (
-            x < 0 ||
-            x >= this.columns ||
-            y < 0 ||
-            y >= this.rows
-        ) {
-            return null;
-        }
-
-        return this.columnList[x].getCell(y);
+        return this.cells
+            .filter(cell => cell.content instanceof Player)
+            .map(cell => cell.content);
     }
 
     render(container) {
@@ -137,8 +101,8 @@ class GameMap {
         container.style.gridTemplateRows =
             `repeat(${this.rows}, minmax(0, 1fr))`;
 
-        this.columnList.forEach(column => {
-            column.render(container);
+        this.cells.forEach(cell => {
+            container.appendChild(cell.render());
         });
     }
 }
