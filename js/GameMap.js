@@ -12,10 +12,15 @@ class GameMap {
         this.placeCharacters();
     }
 
+    // Ex-Cell.selectContent : la carte connaît la proportion d'obstacles
+    selectContent() {
+        return Math.random() < this.obstacleRate ? "obstacle" : "empty";
+    }
+
     createCells() {
         for (let x = 0; x < this.columns; x++) {
             for (let y = 0; y < this.rows; y++) {
-                this.cells.push(new Cell(x, y, this.obstacleRate));
+                this.cells.push(new Cell(x, y, this.selectContent()));
             }
         }
     }
@@ -33,18 +38,23 @@ class GameMap {
         return this.cells[x * this.rows + y];
     }
 
+    // Méthode factorisée : tire une case au hasard sur la carte
+    getRandomCell() {
+        const x = Math.floor(Math.random() * this.columns);
+        const y = Math.floor(Math.random() * this.rows);
+
+        return this.getCell(x, y);
+    }
+
     placeWeapons() {
         WEAPON_TYPES.forEach(weaponType => {
             let weaponPlaced = false;
 
             while (!weaponPlaced) {
-                const x = Math.floor(Math.random() * this.columns);
-                const y = Math.floor(Math.random() * this.rows);
-
-                const cell = this.getCell(x, y);
+                const cell = this.getRandomCell();
 
                 if (cell.isEmpty) {
-                    cell.placeWeapon(weaponType);
+                    cell.content = weaponType;
                     weaponPlaced = true;
                 }
             }
@@ -61,18 +71,16 @@ class GameMap {
             while (attempts < MAX_GENERATION_ATTEMPTS) {
                 attempts += 1;
 
-                const x = Math.floor(Math.random() * this.columns);
-                const y = Math.floor(Math.random() * this.rows);
-                const cell = this.getCell(x, y);
+                const cell = this.getRandomCell();
 
-                // Cases vides uniquement, et jamais adjacentes à un joueur
+                // Cases vides uniquement, et jamais adjacentes à un joueur :
                 // les deux joueurs ne démarrent pas côte à côte.
-                if (!cell || !cell.isEmpty || this.isAdjacentToPlayer(cell, placedPlayers)) {
+                if (!cell.isEmpty || this.isAdjacentToPlayer(cell, placedPlayers)) {
                     continue;
                 }
 
-                const player = new Player(character, x, y);
-                cell.placeCharacter(player);
+                const player = new Player(character, cell.x, cell.y);
+                cell.content = player;
                 placedPlayers.push(player);
                 break;
             }
@@ -92,6 +100,36 @@ class GameMap {
             .map(cell => cell.content);
     }
 
+    // Ex-Cell.render : le rendu d'une case est géré par la carte
+    renderCell(cell) {
+        const element = document.createElement("div");
+        element.classList.add("map__cell");
+        element.dataset.x = cell.x;
+        element.dataset.y = cell.y;
+        element.dataset.testid = `map-cell-${cell.x}-${cell.y}`;
+
+        if (cell.isObstacle) {
+            element.classList.add("map__cell--obstacle");
+        }
+
+        if (cell.content instanceof Player) {
+            element.classList.add("map__cell--personnage");
+
+            const image = document.createElement("img");
+            image.classList.add("map__cell-sprite");
+            image.src = cell.content.getPath();
+            image.alt = cell.content.getName();
+            element.appendChild(image);
+        }
+
+        if (cell.content instanceof Weapon) {
+            element.classList.add("map__cell--arme");
+            element.appendChild(cell.content.render());
+        }
+
+        return element;
+    }
+
     render(container) {
         container.innerHTML = "";
 
@@ -102,10 +140,9 @@ class GameMap {
             `repeat(${this.rows}, minmax(0, 1fr))`;
 
         this.cells.forEach(cell => {
-            container.appendChild(cell.render());
+            container.appendChild(this.renderCell(cell));
         });
     }
 }
-
 
 // La création de la carte et le rendu sont déclenchés par main.js (le lanceur).
