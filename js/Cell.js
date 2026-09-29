@@ -1,71 +1,31 @@
 class Cell {
-    constructor(x, y, obstacleRate) {
-        this.x = x;
-        this.y = y;
-        this.obstacleRate = obstacleRate;
-        this.content = this.selectContent();
+    constructor(x, y, content = "empty") {
+        this._x = x;
+        this._y = y;
+        this._content = content;
     }
 
-    getX() {
-        return this.x;
+    get x() {
+        return this._x;
     }
 
-    getY() {
-        return this.y;
+    get y() {
+        return this._y;
     }
 
-    selectContent() {
-        const random = Math.random();
-
-        if (random < this.obstacleRate) {
-            return "obstacle";
-        }
-
-        return "empty";
+    get content() {
+        return this._content;
     }
 
-    isObstacle() {
-        return this.content === "obstacle";
+    set content(value) {
+        this._content = value;
     }
 
-    isEmpty() {
-        return this.content === "empty";
+    get isObstacle() {
+        return this._content === "obstacle";
     }
 
-    placeWeapon(weapon) {
-        this.content = weapon;
-    }
-
-    placeCharacter(character) {
-        this.content = character;
-    }
-
-    render() {
-        const element = document.createElement("div");
-        element.classList.add("map__cell");
-        element.dataset.x = this.x;
-        element.dataset.y = this.y;
-
-        if (this.isObstacle()) {
-            element.classList.add("map__cell--obstacle");
-        }
-
-        if (this.content instanceof Character) {
-            element.classList.add("map__cell--personnage"); // aligné sur le CSS existant
-
-            const image = document.createElement("img");
-            image.classList.add("map__cell-sprite");
-            image.src = this.content.getPath();
-            image.alt = this.content.getName();
-
-            element.appendChild(image);
-        }
-
-        if (this.content instanceof Weapon) {
-            element.classList.add("map__cell--arme");
-            element.appendChild(this.content.render()); // Weapon.render() existe déjà dans Weapon.js
-        }
-
-        return element;
+    get isEmpty() {
+        return this._content === "empty";
     }
 }
