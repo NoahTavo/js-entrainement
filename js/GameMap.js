@@ -12,39 +12,42 @@ class GameMap {
         this.placeCharacters();
     }
 
-    // Ex-Cell.selectContent : la carte connaît la proportion d'obstacles
-    selectContent() {
-        return Math.random() < this.obstacleRate ? "obstacle" : "empty";
+    // ----- Création -----
+
+    generateCellContent() {
+        return Math.random() < this.obstacleRate ? Cell.OBSTACLE : Cell.EMPTY;
     }
 
     createCells() {
         for (let x = 0; x < this.columns; x++) {
             for (let y = 0; y < this.rows; y++) {
-                this.cells.push(new Cell(x, y, this.selectContent()));
+                this.cells.push(new Cell(x, y, this.generateCellContent()));
             }
         }
     }
 
+    // ----- Accès aux cases -----
+
+    isInsideMap(x, y) {
+        return x >= 0 && x < this.columns && y >= 0 && y < this.rows;
+    }
+
     getCell(x, y) {
-        if (
-            x < 0 ||
-            x >= this.columns ||
-            y < 0 ||
-            y >= this.rows
-        ) {
+        if (!this.isInsideMap(x, y)) {
             return null;
         }
 
         return this.cells[x * this.rows + y];
     }
 
-    // Méthode factorisée : tire une case au hasard sur la carte
     getRandomCell() {
         const x = Math.floor(Math.random() * this.columns);
         const y = Math.floor(Math.random() * this.rows);
 
         return this.getCell(x, y);
     }
+
+    // ----- Placement -----
 
     placeWeapons() {
         WEAPON_TYPES.forEach(weaponType => {
@@ -62,29 +65,32 @@ class GameMap {
     }
 
     placeCharacters() {
-        const characters = retrieveSelectedCharacters();
         const placedPlayers = [];
 
-        characters.forEach(character => {
-            let attempts = 0;
+        retrieveSelectedCharacters().forEach(character => {
+            const cell = this.findStartingCell(placedPlayers);
 
-            while (attempts < MAX_GENERATION_ATTEMPTS) {
-                attempts += 1;
-
-                const cell = this.getRandomCell();
-
-                // Cases vides uniquement, et jamais adjacentes à un joueur :
-                // les deux joueurs ne démarrent pas côte à côte.
-                if (!cell.isEmpty || this.isAdjacentToPlayer(cell, placedPlayers)) {
-                    continue;
-                }
-
-                const player = new Player(character, cell.x, cell.y);
-                cell.content = player;
-                placedPlayers.push(player);
-                break;
+            if (!cell) {
+                return;
             }
+
+            const player = new Player(character, cell.x, cell.y);
+            cell.content = player;
+            placedPlayers.push(player);
         });
+    }
+
+    // Case vide, jamais adjacente à un joueur déjà placé.
+    findStartingCell(placedPlayers) {
+        for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
+            const cell = this.getRandomCell();
+
+            if (cell.isEmpty && !this.isAdjacentToPlayer(cell, placedPlayers)) {
+                return cell;
+            }
+        }
+
+        return null;
     }
 
     isAdjacentToPlayer(cell, players) {
@@ -94,13 +100,14 @@ class GameMap {
     }
 
     // Les joueurs posés sur la carte, dans l'ordre (joueur 1 d'abord).
-    getPlayers() {
+    get players() {
         return this.cells
             .filter(cell => cell.content instanceof Player)
             .map(cell => cell.content);
     }
 
-    // Ex-Cell.render : le rendu d'une case est géré par la carte
+    // ----- Rendu -----
+
     renderCell(cell) {
         const element = document.createElement("div");
         element.classList.add("map__cell");
@@ -145,4 +152,4 @@ class GameMap {
     }
 }
 
-// La création de la carte est déclenchée par main.js, le rendu par renderGame.
+// La création de la carte est déclenchée par main.js, le rendu par renderGame (render.js).
