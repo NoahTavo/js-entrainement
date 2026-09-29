@@ -145,4 +145,4 @@ class GameMap {
     }
 }
 
-// La création de la carte et le rendu sont déclenchés par main.js (le lanceur).
+// La création de la carte est déclenchée par main.js, le rendu par renderGame.

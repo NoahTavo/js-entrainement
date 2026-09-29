@@ -130,16 +130,16 @@ class Game {
     }
 
     canMoveTo(cell) {
-        return Boolean(cell) && !cell.isObstacle() && !(cell.content instanceof Player);
+        return Boolean(cell) && !cell.isObstacle && !(cell.content instanceof Player);
     }
 
     movePlayerTo(player, cell) {
         const previousCell = this.map.getCell(player.x, player.y);
 
-        previousCell.clear();
+        previousCell.content = "empty";
         player.setPosition(cell.x, cell.y);
         this.pickUpWeapon(player, cell);
-        cell.placeCharacter(player);
+        cell.content = player;
     }
 
     // Ramassage : le joueur échange son arme contre celle au sol.
@@ -152,7 +152,7 @@ class Game {
         const dropped = player.getWeapon();
 
         player.setWeapon(picked);
-        cell.placeWeapon(dropped);
+        cell.content = dropped;
 
         addLog(`${player.getName()} échange ${dropped.getName()} contre ${picked.getName()} (${picked.getDamage()} dégâts).`);
     }
