@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ensureCharactersSelected();
 
     const map = new GameMap(GRID_COLUMNS, GRID_ROWS, OBSTACLE_RATE, MAX_WEAPONS);
-    const game = new Game(map, map.getPlayers());
+    const game = new Game(map, map.players);
     window.game = game; // pratique pour le débogage dans la console
 
     game.start();

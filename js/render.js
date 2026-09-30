@@ -40,7 +40,7 @@ function highlightActivePlayerCell(game) {
         return;
     }
 
-    const player = game.getCurrentPlayer();
+    const player = game.currentPlayer;
     const element = findCellElement(player.x, player.y);
     if (element) {
         element.classList.add("map__cell--active");
@@ -63,7 +63,7 @@ function updatePlayerCards(game) {
 
         card.classList.toggle(
             "player-card--active",
-            game.state !== GAME_STATES.OVER && game.getCurrentPlayer() === player
+            game.state !== GAME_STATES.OVER && game.currentPlayer === player
         );
     });
 }
@@ -80,12 +80,12 @@ function updateTurnIndicator(game) {
     }
 
     if (game.state === GAME_STATES.COMBAT) {
-        indicator.textContent = `Combat ! ${game.getCurrentPlayer().getName()} joue.`;
+        indicator.textContent = `Combat ! ${game.currentPlayer.getName()} joue.`;
         return;
     }
 
     indicator.textContent =
-        `Tour de ${game.getCurrentPlayer().getName()} — ${game.movesLeft} déplacement(s) restant(s)`;
+        `Tour de ${game.currentPlayer.getName()} — ${game.movesLeft} déplacement(s) restant(s)`;
 }
 
 function updateCombatActions(game) {
