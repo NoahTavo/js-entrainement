@@ -1,4 +1,17 @@
 class Game {
+    // Touches du clavier -> nom de direction (voir DIRECTIONS dans constants.js)
+    static KEY_DIRECTIONS = {
+        ArrowUp: "up",
+        ArrowDown: "down",
+        ArrowLeft: "left",
+        ArrowRight: "right"
+    };
+
+    // Clé unique d'une coordonnée, utilisée par le parcours des cases atteignables
+    static toKey(x, y) {
+        return `${x},${y}`;
+    }
+
     constructor(map, players) {
         this.map = map;
         this.players = players;
@@ -9,52 +22,82 @@ class Game {
         this.winner = null;
     }
 
-    // ----- Accès -----
+    // ==================================================================
+    // Accès et état
+    // ==================================================================
 
-    getCurrentPlayer() {
+    get currentPlayer() {
         return this.players[this.currentPlayerIndex];
     }
 
-    getOpponent() {
+    get opponent() {
         return this.players[(this.currentPlayerIndex + 1) % this.players.length];
     }
 
-    // ----- Cycle de vie -----
+    get isMoving() {
+        return this.state === GAME_STATES.MOVING;
+    }
+
+    get isInCombat() {
+        return this.state === GAME_STATES.COMBAT;
+    }
+
+    get isOver() {
+        return this.state === GAME_STATES.OVER;
+    }
+
+    switchToNextPlayer() {
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    }
+
+    announceCurrentTurn() {
+        addLog(`Au tour de ${this.currentPlayer.getName()}.`);
+    }
+
+    // ==================================================================
+    // Cycle de vie
+    // ==================================================================
 
     start() {
-        addLog(`${this.getCurrentPlayer().getName()} commence la partie !`);
+        addLog(`${this.currentPlayer.getName()} commence la partie !`);
         this.computeReachableCells();
         renderGame(this);
     }
 
-    // ----- Entrées clavier main.js -----
+    // ==================================================================
+    // Entrées clavier (appelées depuis main.js)
+    // ==================================================================
 
     handleKey(key) {
-        if (this.state === GAME_STATES.OVER) {
+        if (this.isOver) {
             return;
         }
 
-        if (this.state === GAME_STATES.COMBAT) {
-            if (key === "a" || key === "A") {
-                this.attack();
-            }
-
-            if (key === "p" || key === "P") {
-                this.togglePosture();
-            }
-
+        if (this.isInCombat) {
+            this.handleCombatKey(key);
             return;
         }
 
-        const direction = {
-            ArrowUp: "up",
-            ArrowDown: "down",
-            ArrowLeft: "left",
-            ArrowRight: "right"
-        }[key];
+        this.handleMovingKey(key);
+    }
 
-        if (direction) {
-            this.moveByDirection(direction);
+    handleCombatKey(key) {
+        const lowerKey = key.toLowerCase();
+
+        if (lowerKey === "a") {
+            this.attack();
+        }
+
+        if (lowerKey === "p") {
+            this.togglePosture();
+        }
+    }
+
+    handleMovingKey(key) {
+        const directionName = Game.KEY_DIRECTIONS[key];
+
+        if (directionName) {
+            this.moveByDirection(directionName);
             return;
         }
 
@@ -63,10 +106,13 @@ class Game {
         }
     }
 
-    // ----- Phase de déplacement (MOVING) -----
+    // ==================================================================
+    // Phase de déplacement (MOVING)
+    // ==================================================================
 
+    // Déplacement d'une case au clavier.
     moveByDirection(directionName) {
-        if (this.state !== GAME_STATES.MOVING) {
+        if (!this.isMoving) {
             return;
         }
 
@@ -75,57 +121,57 @@ class Game {
             return;
         }
 
-        const player = this.getCurrentPlayer();
+        const player = this.currentPlayer;
         const cell = this.map.getCell(player.x + direction.dx, player.y + direction.dy);
 
         if (!this.canMoveTo(cell)) {
-            addLog("Déplacement impossible : case bloquée ou hors carte.");
-            renderGame(this);
+            this.rejectMove();
             return;
         }
 
-        this.movePlayerTo(player, cell);
-        this.movesLeft -= 1;
+        this.stepTo(player, cell);
         this.afterMove();
     }
 
-    // Déplacement au clic : suit le chemin complet trouvé par le parcours,
-    // en ramassant les armes croisées en route.
+    // Déplacement au clic : le joueur suit le chemin complet jusqu'à la case ciblée.
     moveToCell(targetCell) {
-        if (this.state !== GAME_STATES.MOVING) {
+        if (!this.isMoving) {
             return;
         }
 
-        const target = this.reachableCells.find(entry => entry.cell === targetCell);
+        const target = this.findReachableEntry(targetCell);
         if (!target) {
             return;
         }
 
-        const player = this.getCurrentPlayer();
+        this.followPath(target.path);
 
-        for (const cell of target.path) {
-            if (this.state !== GAME_STATES.MOVING) {
-                break; // le combat s'est engagé en chemin : le trajet s'arrête
-            }
+        // Si le combat s'est engagé en chemin, il gère déjà l'affichage.
+        if (this.isMoving) {
+            this.continueTurn();
+        }
+    }
 
-            this.movePlayerTo(player, cell);
-            this.movesLeft -= 1;
+    findReachableEntry(cell) {
+        return this.reachableCells.find(entry => entry.cell === cell);
+    }
+
+    // Avance case par case ; s'arrête dès que le combat s'engage.
+    followPath(path) {
+        const player = this.currentPlayer;
+
+        for (const cell of path) {
+            this.stepTo(player, cell);
 
             if (this.arePlayersAdjacent()) {
                 this.startCombat();
-                break;
+                return;
             }
         }
+    }
 
-        if (this.state === GAME_STATES.MOVING && this.movesLeft <= 0) {
-            this.endTurn();
-            return;
-        }
-
-        if (this.state === GAME_STATES.MOVING) {
-            this.computeReachableCells();
-        }
-
+    rejectMove() {
+        addLog("Déplacement impossible : case bloquée ou hors carte.");
         renderGame(this);
     }
 
@@ -133,10 +179,16 @@ class Game {
         return Boolean(cell) && !cell.isObstacle && !(cell.content instanceof Player);
     }
 
+    // Un pas : déplace le joueur et consomme un point de déplacement.
+    stepTo(player, cell) {
+        this.movePlayerTo(player, cell);
+        this.movesLeft -= 1;
+    }
+
     movePlayerTo(player, cell) {
         const previousCell = this.map.getCell(player.x, player.y);
 
-        previousCell.content = "empty";
+        previousCell.content = Cell.EMPTY;
         player.setPosition(cell.x, cell.y);
         this.pickUpWeapon(player, cell);
         cell.content = player;
@@ -157,12 +209,24 @@ class Game {
         addLog(`${player.getName()} échange ${dropped.getName()} contre ${picked.getName()} (${picked.getDamage()} dégâts).`);
     }
 
+    arePlayersAdjacent() {
+        const [first, second] = this.players;
+
+        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
+    }
+
+    // Après un pas au clavier : combat, fin de tour, ou on continue.
     afterMove() {
         if (this.arePlayersAdjacent()) {
             this.startCombat();
             return;
         }
 
+        this.continueTurn();
+    }
+
+    // Fin de tour si plus de déplacements, sinon recalcul des cases accessibles.
+    continueTurn() {
         if (this.movesLeft <= 0) {
             this.endTurn();
             return;
@@ -172,69 +236,72 @@ class Game {
         renderGame(this);
     }
 
-    arePlayersAdjacent() {
-        const first = this.players[0];
-        const second = this.players[1];
-
-        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
-    }
-
     endTurn() {
-        if (this.state !== GAME_STATES.MOVING) {
+        if (!this.isMoving) {
             return;
         }
 
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+        this.switchToNextPlayer();
         this.movesLeft = MAX_MOVE;
         this.computeReachableCells();
 
-        addLog(`Au tour de ${this.getCurrentPlayer().getName()}.`);
+        this.announceCurrentTurn();
         renderGame(this);
     }
 
-    // Cases atteignables ce tour : 1 à MAX_MOVE cases, à travers les cases
+    // ==================================================================
+    // Cases atteignables (parcours en largeur)
+    // ==================================================================
+
+    // Cases atteignables ce tour : 1 à movesLeft cases, à travers les cases
     // vides uniquement (obstacles et adversaire infranchissables).
     computeReachableCells() {
-        const player = this.getCurrentPlayer();
-        const startKey = `${player.x},${player.y}`;
-        const distances = new Map([[startKey, 0]]);
-        const parents = new Map();
-        const queue = [{ x: player.x, y: player.y }];
+        const player = this.currentPlayer;
+        const search = {
+            distances: new Map([[Game.toKey(player.x, player.y), 0]]),
+            parents: new Map(),
+            queue: [{ x: player.x, y: player.y }]
+        };
 
         this.reachableCells = [];
 
-        while (queue.length > 0) {
-            const current = queue.shift();
-            const currentKey = `${current.x},${current.y}`;
-            const distance = distances.get(currentKey);
-
-            if (distance >= this.movesLeft) {
-                continue;
-            }
-
-            Object.values(DIRECTIONS).forEach(direction => {
-                const x = current.x + direction.dx;
-                const y = current.y + direction.dy;
-                const key = `${x},${y}`;
-
-                if (distances.has(key)) {
-                    return;
-                }
-
-                const cell = this.map.getCell(x, y);
-                if (!this.canMoveTo(cell)) {
-                    return;
-                }
-
-                distances.set(key, distance + 1);
-                parents.set(key, currentKey);
-                this.reachableCells.push({
-                    cell: cell,
-                    path: this.buildPath(parents, key)
-                });
-                queue.push({ x: x, y: y });
-            });
+        while (search.queue.length > 0) {
+            this.exploreNext(search);
         }
+    }
+
+    // Traite la prochaine case de la file et visite ses voisines.
+    exploreNext(search) {
+        const current = search.queue.shift();
+        const distance = search.distances.get(Game.toKey(current.x, current.y));
+
+        if (distance >= this.movesLeft) {
+            return;
+        }
+
+        Object.values(DIRECTIONS).forEach(direction => {
+            this.visitNeighbor(search, current, direction, distance);
+        });
+    }
+
+    visitNeighbor(search, current, direction, distance) {
+        const x = current.x + direction.dx;
+        const y = current.y + direction.dy;
+        const key = Game.toKey(x, y);
+        const cell = this.map.getCell(x, y);
+
+        if (search.distances.has(key) || !this.canMoveTo(cell)) {
+            return;
+        }
+
+        search.distances.set(key, distance + 1);
+        search.parents.set(key, Game.toKey(current.x, current.y));
+        search.queue.push({ x: x, y: y });
+
+        this.reachableCells.push({
+            cell: cell,
+            path: this.buildPath(search.parents, key)
+        });
     }
 
     // Reconstruit le chemin (cases) depuis la position de départ jusqu'à la case.
@@ -251,7 +318,9 @@ class Game {
         return path.slice(1); // sans la case de départ
     }
 
-    // ----- Phase de combat (COMBAT) -----
+    // ==================================================================
+    // Phase de combat (COMBAT)
+    // ==================================================================
 
     startCombat() {
         this.state = GAME_STATES.COMBAT;
@@ -262,18 +331,13 @@ class Game {
     }
 
     attack() {
-        if (this.state !== GAME_STATES.COMBAT) {
+        if (!this.isInCombat) {
             return;
         }
 
-        const attacker = this.getCurrentPlayer();
-        const defender = this.getOpponent();
-        const weaponDamage = attacker.getWeapon().getDamage();
-
-        // Posture défensive : le défenseur encaisse 50 % de dégâts en moins.
-        const damage = defender.getPosture() === POSTURES.DEFENSIVE
-            ? Math.floor(weaponDamage * DEFENSE_DAMAGE_MULTIPLIER)
-            : weaponDamage;
+        const attacker = this.currentPlayer;
+        const defender = this.opponent;
+        const damage = this.computeDamage(attacker, defender);
 
         defender.takeDamage(damage);
         addLog(`${attacker.getName()} attaque ${defender.getName()} avec ${attacker.getWeapon().getName()} : ${damage} dégâts.`);
@@ -286,12 +350,23 @@ class Game {
         this.nextCombatTurn();
     }
 
+    // Posture défensive : le défenseur encaisse moins de dégâts.
+    computeDamage(attacker, defender) {
+        const weaponDamage = attacker.getWeapon().getDamage();
+
+        if (defender.getPosture() === POSTURES.DEFENSIVE) {
+            return Math.floor(weaponDamage * DEFENSE_DAMAGE_MULTIPLIER);
+        }
+
+        return weaponDamage;
+    }
+
     togglePosture() {
-        if (this.state !== GAME_STATES.COMBAT) {
+        if (!this.isInCombat) {
             return;
         }
 
-        const player = this.getCurrentPlayer();
+        const player = this.currentPlayer;
         player.togglePosture();
 
         addLog(`${player.getName()} adopte la posture ${POSTURE_LABELS[player.getPosture()].toLowerCase()}.`);
@@ -299,13 +374,14 @@ class Game {
     }
 
     nextCombatTurn() {
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-
-        addLog(`Au tour de ${this.getCurrentPlayer().getName()}.`);
+        this.switchToNextPlayer();
+        this.announceCurrentTurn();
         renderGame(this);
     }
 
-    // ----- Fin de partie (OVER) -----
+    // ==================================================================
+    // Fin de partie (OVER)
+    // ==================================================================
 
     gameOver(winner) {
         this.state = GAME_STATES.OVER;
