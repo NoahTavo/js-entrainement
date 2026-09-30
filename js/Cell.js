@@ -1,5 +1,8 @@
 class Cell {
-    constructor(x, y, content = "empty") {
+    static EMPTY = "empty";
+    static OBSTACLE = "obstacle";
+
+    constructor(x, y, content = Cell.EMPTY) {
         this._x = x;
         this._y = y;
         this._content = content;
@@ -22,10 +25,10 @@ class Cell {
     }
 
     get isObstacle() {
-        return this._content === "obstacle";
+        return this._content === Cell.OBSTACLE;
     }
 
     get isEmpty() {
-        return this._content === "empty";
+        return this._content === Cell.EMPTY;
     }
 }
