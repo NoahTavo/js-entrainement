@@ -27,8 +27,8 @@ class CharacterSelector {
     }
 
     initialize() {
-        if (!this.select) {
-            console.error(`Selector not found: ${this.select}`);
+        // Absent sur les pages sans sélecteur de personnage (index.html).
+        if (!this.select || !this.preview) {
             return;
         }
         this.populateSelector();
@@ -81,13 +81,10 @@ class CharacterManager {
             "Noah.png",
             "Wissem.png",
             "Charlie.png",
-            "Fabien.png",
             "Hamza.png",
             "Faical.png",
             "Abdel.png",
-            "Samuel.png",
-            "Nabil.png",
-            "Philippe.png"
+            "Samuel.png"
         ];
         files.forEach(file => {
             this.characters.push(new Character(file));
@@ -110,7 +107,7 @@ class CharacterManager {
     }
 }
 
-class Game {
+class FatalityMenu {
     constructor() {
         this.characterManager = new CharacterManager();
     }
@@ -182,8 +179,82 @@ function startGame() {
     window.location.href = "index.html";
 }
 
+// ---------------------------------------------------------------------------
+// Player : position, PV, arme, posture.
+// ---------------------------------------------------------------------------
+class Player {
+    constructor(character, x, y) {
+        this.character = character; // feuille de personnage (nom + icon)
+        this.x = x;
+        this.y = y;
+        this.hp = PLAYER_MAX_HP;
+        this.weapon = DEFAULT_WEAPON; // Poings, avant tout ramassage
+        this.posture = POSTURES.OFFENSIVE;
+    }
+
+    getName() {
+        return this.character.getName();
+    }
+
+    getPath() {
+        return this.character.getPath();
+    }
+
+    getX() {
+        return this.x;
+    }
+
+    getY() {
+        return this.y;
+    }
+
+    getPosition() {
+        return { x: this.x, y: this.y };
+    }
+
+    setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    getHp() {
+        return this.hp;
+    }
+
+    takeDamage(damage) {
+        this.hp = Math.max(0, this.hp - damage);
+    }
+
+    isAlive() {
+        return this.hp > 0;
+    }
+
+    getWeapon() {
+        return this.weapon;
+    }
+
+    setWeapon(weapon) {
+        this.weapon = weapon;
+    }
+
+    getPosture() {
+        return this.posture;
+    }
+
+    setPosture(posture) {
+        this.posture = posture;
+    }
+
+    // Posture défensive : -50 % de dégâts subis au prochain tour.
+    togglePosture() {
+        this.posture = this.posture === POSTURES.OFFENSIVE
+            ? POSTURES.DEFENSIVE
+            : POSTURES.OFFENSIVE;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    const game = new Game();
+    const game = new FatalityMenu();
     game.start();
     displayPlayerNames();
 });
