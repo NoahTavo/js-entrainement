@@ -1,26 +1,28 @@
 class Weapon {
     constructor(id, name, damage, icon) {
-        this.id = id;
-        this.name = name;
-        this.damage = damage;
-        this.icon = icon; // chemin vers le SVG de l'arme
+        this._id = id;
+        this._name = name;
+        this._damage = damage;
+        this._icon = icon; // chemin vers le SVG de l'arme
     }
 
-    getId() {
-        return this.id;
+    get id() {
+        return this._id;
     }
 
-    getName() {
-        return this.name;
+    get name() {
+        return this._name;
     }
 
-    getDamage() {
-        return this.damage;
+    get damage() {
+        return this._damage;
     }
 
+    get icon() {
+        return this._icon;
+    }
 
-    // Permet à GameMap.js de savoir comment afficher une arme posée au sol,
-    // sur le même principe que Character.getPath() / getName() dans Player.js
+    // Permet à GameMap.js de savoir comment afficher une arme posée au sol.
     render() {
         const image = document.createElement("img");
         image.classList.add("map__cell-sprite");
@@ -29,14 +31,3 @@ class Weapon {
         return image;
     }
 }
-
-//------------------------------------------ARME------------------------------------------------------------------------
-const WEAPON_TYPES = [
-    new Weapon("sword", "Knife", 15, "assets/weapons/sword.svg"),
-    new Weapon("gun", "Gun", 20, "assets/weapons/gun-military.svg"),
-    new Weapon("rocket", "Rocket", 50, "assets/weapons/missile.svg"),
-    new Weapon("kalashnikov", "Kalashnikov", 25, "assets/weapons/kalashnikov.svg"),
-];
-//----------------------------------------------------------------------------------------------------------------------
-// L'arme de départ, équipée par les deux joueurs avant tout ramassage.
-const DEFAULT_WEAPON = new Weapon("fists", "Poings", 10, "assets/weapons/poings.svg");
