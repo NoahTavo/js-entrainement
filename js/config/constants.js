@@ -35,3 +35,18 @@ const DIRECTIONS = {
     left:  { dx: 0, dy: -1 },
     right: { dx: 0,  dy: 1 }
 };
+// ----- Sélection des personnages (localStorage) -----
+const PLAYER1_STORAGE_KEY = "Dynedoc_player1";
+const PLAYER2_STORAGE_KEY = "Dynedoc_player2";
+
+// ----- Personnages disponibles (images dans assets/characters/) -----
+const PLAYER_FILES = [
+    "Jules.png",
+    "Noah.png",
+    "Wissem.png",
+    "Charlie.png",
+    "Hamza.png",
+    "Faical.png",
+    "Abdel.png",
+    "Samuel.png"
+];
