@@ -1,5 +1,5 @@
 class Game {
-    // Touches du clavier -> nom de direction (voir DIRECTIONS dans constants.js)
+    // Touches du clavier -> nom de direction (voir DIRECTIONS dans config/constants.js)
     static KEY_DIRECTIONS = {
         ArrowUp: "up",
         ArrowDown: "down",
@@ -8,23 +8,69 @@ class Game {
     };
 
     // Clé unique d'une coordonnée, utilisée par le parcours des cases atteignables
-    static toKey(x, y) {
-        return `${x},${y}`;
-    }
+    static toKey = (x, y) => `${x},${y}`;
 
     constructor(map, players) {
-        this.map = map;
-        this.players = players;
-        this.currentPlayerIndex = 0; // le joueur 1 commence toujours
-        this.state = GAME_STATES.MOVING;
-        this.movesLeft = MAX_MOVE;
-        this.reachableCells = [];
-        this.winner = null;
+        this._map = map;
+        this._players = players;
+        this._currentPlayerIndex = 0; // le joueur 1 commence toujours
+        this._state = GAME_STATES.MOVING;
+        this._movesLeft = MAX_MOVE;
+        this._reachableCells = [];
+        this._winner = null;
     }
 
     // ==================================================================
-    // Accès et état
+    // Getters / setters
     // ==================================================================
+
+    get map() {
+        return this._map;
+    }
+
+    get players() {
+        return this._players;
+    }
+
+    get currentPlayerIndex() {
+        return this._currentPlayerIndex;
+    }
+
+    set currentPlayerIndex(value) {
+        this._currentPlayerIndex = value;
+    }
+
+    get state() {
+        return this._state;
+    }
+
+    set state(value) {
+        this._state = value;
+    }
+
+    get movesLeft() {
+        return this._movesLeft;
+    }
+
+    set movesLeft(value) {
+        this._movesLeft = value;
+    }
+
+    get reachableCells() {
+        return this._reachableCells;
+    }
+
+    set reachableCells(value) {
+        this._reachableCells = value;
+    }
+
+    get winner() {
+        return this._winner;
+    }
+
+    set winner(value) {
+        this._winner = value;
+    }
 
     get currentPlayer() {
         return this.players[this.currentPlayerIndex];
@@ -46,12 +92,18 @@ class Game {
         return this.state === GAME_STATES.OVER;
     }
 
+    get arePlayersAdjacent() {
+        const [first, second] = this.players;
+
+        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
+    }
+
     switchToNextPlayer() {
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
     }
 
     announceCurrentTurn() {
-        addLog(`Au tour de ${this.currentPlayer.getName()}.`);
+        addLog(`Au tour de ${this.currentPlayer.name}.`);
     }
 
     // ==================================================================
@@ -59,7 +111,7 @@ class Game {
     // ==================================================================
 
     start() {
-        addLog(`${this.currentPlayer.getName()} commence la partie !`);
+        addLog(`${this.currentPlayer.name} commence la partie !`);
         this.computeReachableCells();
         renderGame(this);
     }
@@ -163,7 +215,7 @@ class Game {
         for (const cell of path) {
             this.stepTo(player, cell);
 
-            if (this.arePlayersAdjacent()) {
+            if (this.arePlayersAdjacent) {
                 this.startCombat();
                 return;
             }
@@ -189,7 +241,7 @@ class Game {
         const previousCell = this.map.getCell(player.x, player.y);
 
         previousCell.content = Cell.EMPTY;
-        player.setPosition(cell.x, cell.y);
+        player.position = { x: cell.x, y: cell.y };
         this.pickUpWeapon(player, cell);
         cell.content = player;
     }
@@ -201,23 +253,17 @@ class Game {
         }
 
         const picked = cell.content;
-        const dropped = player.getWeapon();
+        const dropped = player.weapon;
 
-        player.setWeapon(picked);
+        player.weapon = picked;
         cell.content = dropped;
 
-        addLog(`${player.getName()} échange ${dropped.getName()} contre ${picked.getName()} (${picked.getDamage()} dégâts).`);
-    }
-
-    arePlayersAdjacent() {
-        const [first, second] = this.players;
-
-        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
+        addLog(`${player.name} échange ${dropped.name} contre ${picked.name} (${picked.damage} dégâts).`);
     }
 
     // Après un pas au clavier : combat, fin de tour, ou on continue.
     afterMove() {
-        if (this.arePlayersAdjacent()) {
+        if (this.arePlayersAdjacent) {
             this.startCombat();
             return;
         }
@@ -296,10 +342,10 @@ class Game {
 
         search.distances.set(key, distance + 1);
         search.parents.set(key, Game.toKey(current.x, current.y));
-        search.queue.push({ x: x, y: y });
+        search.queue.push({ x, y });
 
         this.reachableCells.push({
-            cell: cell,
+            cell,
             path: this.buildPath(search.parents, key)
         });
     }
@@ -324,9 +370,11 @@ class Game {
 
     startCombat() {
         this.state = GAME_STATES.COMBAT;
-        this.players.forEach(player => player.setPosture(POSTURES.OFFENSIVE));
+        this.players.forEach(player => {
+            player.posture = POSTURES.OFFENSIVE;
+        });
 
-        addLog(`${this.players[0].getName()} et ${this.players[1].getName()} sont adjacents : le combat s'engage !`);
+        addLog(`${this.players[0].name} et ${this.players[1].name} sont adjacents : le combat s'engage !`);
         renderGame(this);
     }
 
@@ -340,9 +388,9 @@ class Game {
         const damage = this.computeDamage(attacker, defender);
 
         defender.takeDamage(damage);
-        addLog(`${attacker.getName()} attaque ${defender.getName()} avec ${attacker.getWeapon().getName()} : ${damage} dégâts.`);
+        addLog(`${attacker.name} attaque ${defender.name} avec ${attacker.weapon.name} : ${damage} dégâts.`);
 
-        if (!defender.isAlive()) {
+        if (!defender.isAlive) {
             this.gameOver(attacker);
             return;
         }
@@ -352,9 +400,9 @@ class Game {
 
     // Posture défensive : le défenseur encaisse moins de dégâts.
     computeDamage(attacker, defender) {
-        const weaponDamage = attacker.getWeapon().getDamage();
+        const weaponDamage = attacker.weapon.damage;
 
-        if (defender.getPosture() === POSTURES.DEFENSIVE) {
+        if (defender.posture === POSTURES.DEFENSIVE) {
             return Math.floor(weaponDamage * DEFENSE_DAMAGE_MULTIPLIER);
         }
 
@@ -369,7 +417,7 @@ class Game {
         const player = this.currentPlayer;
         player.togglePosture();
 
-        addLog(`${player.getName()} adopte la posture ${POSTURE_LABELS[player.getPosture()].toLowerCase()}.`);
+        addLog(`${player.name} adopte la posture ${POSTURE_LABELS[player.posture].toLowerCase()}.`);
         this.nextCombatTurn();
     }
 
@@ -387,7 +435,7 @@ class Game {
         this.state = GAME_STATES.OVER;
         this.winner = winner;
 
-        addLog(`${winner.getName()} remporte la partie !`);
+        addLog(`${winner.name} remporte la partie !`);
         renderGame(this);
         showGameOver(winner);
     }
