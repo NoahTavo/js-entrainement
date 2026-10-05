@@ -30,8 +30,8 @@ const GAME_STATES = {
 
 // ----- Directions (flèches du clavier) -----
 const DIRECTIONS = {
-    up:    { dx: 0,  dy: -1 },
-    down:  { dx: 0,  dy: 1 },
-    left:  { dx: -1, dy: 0 },
-    right: { dx: 1,  dy: 0 }
+    up:    { dx: -1,  dy: 0 },
+    down:  { dx: 1,  dy: 0 },
+    left:  { dx: 0, dy: -1 },
+    right: { dx: 0,  dy: 1 }
 };
