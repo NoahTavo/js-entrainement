@@ -1,8 +1,8 @@
 // ----- Carte -----
 const GRID_COLUMNS = 10;
 const GRID_ROWS = 10;
-const OBSTACLE_RATE = 0.15;      // 15 % de cases inaccessibles
-const MAX_WEAPONS = 4;           // nombre maximum d'armes posées sur la carte
+const OBSTACLE_RATE = 0.15;          // 15 % de cases inaccessibles
+const MAX_WEAPONS = 4;               // nombre maximum d'armes posées sur la carte
 const MAX_GENERATION_ATTEMPTS = 100; // sécurité si les joueurs sont emmurés
 
 // ----- Joueurs -----
@@ -30,9 +30,9 @@ const GAME_STATES = {
 
 // ----- Directions (flèches du clavier) -----
 const DIRECTIONS = {
-    up:    { dx: -1,  dy: 0 },
+    up:    { dx: -1, dy: 0 },
     down:  { dx: 1,  dy: 0 },
-    left:  { dx: 0, dy: -1 },
+    left:  { dx: 0,  dy: -1 },
     right: { dx: 0,  dy: 1 }
 };
 // ----- Sélection des personnages (localStorage) -----
