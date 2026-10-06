@@ -1,3 +1,15 @@
+// index.html ouvert sans passage par le menu : pose une sélection par défaut.
+const ensureCharactersSelected = () => {
+    const manager = new PlayerManager();
+
+    if (manager.selectedPlayers.length < 2) {
+        const [first, second] = manager.players;
+
+        localStorage.setItem(PLAYER1_STORAGE_KEY, first.file);
+        localStorage.setItem(PLAYER2_STORAGE_KEY, second.file);
+    }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     ensureCharactersSelected();
 
@@ -10,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Clavier : flèches pour se déplacer, A pour attaquer, P pour la posture,
     // Entrée pour terminer le tour.
     document.addEventListener("keydown", (event) => {
-        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+        if (Object.keys(Game.KEY_DIRECTIONS).includes(event.key)) {
             event.preventDefault();
         }
 
@@ -18,13 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Boutons d'action (mêmes actions que les touches).
-    const attackButton = document.getElementById("attack-button");
-    const postureButton = document.getElementById("posture-button");
-    const endTurnButton = document.getElementById("end-turn-button");
-
-    attackButton.addEventListener("click", () => game.attack());
-    postureButton.addEventListener("click", () => game.togglePosture());
-    endTurnButton.addEventListener("click", () => game.endTurn());
+    document.getElementById("attack-button").addEventListener("click", () => game.attack());
+    document.getElementById("posture-button").addEventListener("click", () => game.togglePosture());
+    document.getElementById("end-turn-button").addEventListener("click", () => game.endTurn());
 
     // Clic sur une case surlignée pour s'y déplacer.
     getMapContainer().addEventListener("click", (event) => {
@@ -38,16 +46,3 @@ document.addEventListener("DOMContentLoaded", () => {
         game.moveToCell(game.map.getCell(x, y));
     });
 });
-
-// index.html ouvert sans passage par le menu : pose une sélection par défaut.
-function ensureCharactersSelected() {
-    const characters = retrieveSelectedCharacters();
-
-    if (characters.length < 2) {
-        const characterManager = new CharacterManager();
-        const available = characterManager.getCharacters();
-
-        localStorage.setItem(PLAYER1_STORAGE_KEY, available[0].getFile());
-        localStorage.setItem(PLAYER2_STORAGE_KEY, available[1].getFile());
-    }
-}
