@@ -7,15 +7,13 @@ class Game {
         ArrowRight: "right"
     };
 
-    // Clé unique d'une coordonnée, utilisée par le parcours des cases atteignables
-    static toKey = (x, y) => `${x},${y}`;
-
     constructor(map, players) {
         this._map = map;
         this._players = players;
         this._currentPlayerIndex = 0; // le joueur 1 commence toujours
         this._state = GAME_STATES.MOVING;
         this._movesLeft = MAX_MOVE;
+        this._lockedDirection = null; // direction choisie pour ce tour (null = pas encore bougé)
         this._reachableCells = [];
         this._winner = null;
     }
@@ -54,6 +52,14 @@ class Game {
 
     set movesLeft(value) {
         this._movesLeft = value;
+    }
+
+    get lockedDirection() {
+        return this._lockedDirection;
+    }
+
+    set lockedDirection(value) {
+        this._lockedDirection = value;
     }
 
     get reachableCells() {
@@ -163,6 +169,7 @@ class Game {
     // ==================================================================
 
     // Déplacement d'une case au clavier.
+    // Un changement de direction pendant un déplacement est interdit.
     moveByDirection(directionName) {
         if (!this.isMoving) {
             return;
@@ -170,6 +177,12 @@ class Game {
 
         const direction = DIRECTIONS[directionName];
         if (!direction) {
+            return;
+        }
+
+        if (this.lockedDirection && this.lockedDirection !== directionName) {
+            addLog("Changement de direction interdit pendant un déplacement.");
+            renderGame(this);
             return;
         }
 
@@ -231,43 +244,51 @@ class Game {
         return Boolean(cell) && !cell.isObstacle && !(cell.content instanceof Player);
     }
 
-    // Un pas : déplace le joueur et consomme un point de déplacement.
+    // Un pas : verrouille la direction du tour, déplace le joueur
+    // et consomme un point de déplacement.
     stepTo(player, cell) {
+        const dx = cell.x - player.x;
+        const dy = cell.y - player.y;
+
+        this.lockedDirection = Object.keys(DIRECTIONS).find(name =>
+            DIRECTIONS[name].dx === dx && DIRECTIONS[name].dy === dy
+        );
+
         this.movePlayerTo(player, cell);
         this.movesLeft -= 1;
     }
 
-movePlayerTo(player, cell) {
-    const previousCell = this.map.getCell(player.x, player.y);
+    movePlayerTo(player, cell) {
+        const previousCell = this.map.getCell(player.x, player.y);
 
-    // En partant, la case retrouve l'arme déposée (ou redevient vide).
-    previousCell.content = previousCell.weapon || Cell.EMPTY;
-    previousCell.weapon = null;
+        // En partant, la case retrouve l'arme déposée (ou redevient vide).
+        previousCell.content = previousCell.weapon || Cell.EMPTY;
+        previousCell.weapon = null;
 
-    player.position = { x: cell.x, y: cell.y };
-    this.pickUpWeapon(player, cell);
-    cell.content = player;
-}
-
-// Ramassage : le joueur échange son arme contre celle au sol,
-// et l'ancienne arme reste sur la case (sauf les poings).
-pickUpWeapon(player, cell) {
-    if (!(cell.content instanceof Weapon)) {
-        return;
+        player.position = { x: cell.x, y: cell.y };
+        this.pickUpWeapon(player, cell);
+        cell.content = player;
     }
 
-    const picked = cell.content;
-    const dropped = player.weapon;
+    // Ramassage : le joueur échange son arme contre celle au sol,
+    // et l'ancienne arme reste sur la case (sauf les poings).
+    pickUpWeapon(player, cell) {
+        if (!(cell.content instanceof Weapon)) {
+            return;
+        }
 
-    player.weapon = picked;
-    cell.weapon = dropped === DEFAULT_WEAPON ? null : dropped;
+        const picked = cell.content;
+        const dropped = player.weapon;
 
-    if (cell.weapon) {
-        addLog(`${player.name} échange ${dropped.name} contre ${picked.name} (${picked.damage} dégâts).`);
-    } else {
-        addLog(`${player.name} ramasse ${picked.name} (${picked.damage} dégâts).`);
+        player.weapon = picked;
+        cell.weapon = dropped === DEFAULT_WEAPON ? null : dropped;
+
+        if (cell.weapon) {
+            addLog(`${player.name} échange ${dropped.name} contre ${picked.name} (${picked.damage} dégâts).`);
+        } else {
+            addLog(`${player.name} ramasse ${picked.name} (${picked.damage} dégâts).`);
+        }
     }
-}
 
     // Après un pas au clavier : combat, fin de tour, ou on continue.
     afterMove() {
@@ -297,6 +318,7 @@ pickUpWeapon(player, cell) {
 
         this.switchToNextPlayer();
         this.movesLeft = MAX_MOVE;
+        this.lockedDirection = null;
         this.computeReachableCells();
 
         this.announceCurrentTurn();
@@ -304,72 +326,37 @@ pickUpWeapon(player, cell) {
     }
 
     // ==================================================================
-    // Cases atteignables (parcours en largeur)
+    // Cases atteignables (lignes droites)
     // ==================================================================
 
-    // Cases atteignables ce tour : 1 à movesLeft cases, à travers les cases
-    // vides uniquement (obstacles et adversaire infranchissables).
+    // Cases atteignables : en ligne droite (haut/bas/gauche/droite), jusqu'à
+    // movesLeft cases, arrêt au premier obstacle ou joueur. Si le joueur a déjà
+    // avancé ce tour, seule la direction choisie reste possible.
     computeReachableCells() {
         const player = this.currentPlayer;
-        const search = {
-            distances: new Map([[Game.toKey(player.x, player.y), 0]]),
-            parents: new Map(),
-            queue: [{ x: player.x, y: player.y }]
-        };
-
         this.reachableCells = [];
 
-        while (search.queue.length > 0) {
-            this.exploreNext(search);
-        }
-    }
+        Object.entries(DIRECTIONS).forEach(([name, direction]) => {
+            if (this.lockedDirection && this.lockedDirection !== name) {
+                return;
+            }
 
-    // Traite la prochaine case de la file et visite ses voisines.
-    exploreNext(search) {
-        const current = search.queue.shift();
-        const distance = search.distances.get(Game.toKey(current.x, current.y));
+            const path = [];
 
-        if (distance >= this.movesLeft) {
-            return;
-        }
+            for (let step = 1; step <= this.movesLeft; step++) {
+                const cell = this.map.getCell(
+                    player.x + direction.dx * step,
+                    player.y + direction.dy * step
+                );
 
-        Object.values(DIRECTIONS).forEach(direction => {
-            this.visitNeighbor(search, current, direction, distance);
+                if (!this.canMoveTo(cell)) {
+                    break;
+                }
+
+                path.push(cell);
+                this.reachableCells.push({ cell, path: [...path] });
+            }
         });
-    }
-
-    visitNeighbor(search, current, direction, distance) {
-        const x = current.x + direction.dx;
-        const y = current.y + direction.dy;
-        const key = Game.toKey(x, y);
-        const cell = this.map.getCell(x, y);
-
-        if (search.distances.has(key) || !this.canMoveTo(cell)) {
-            return;
-        }
-
-        search.distances.set(key, distance + 1);
-        search.parents.set(key, Game.toKey(current.x, current.y));
-        search.queue.push({ x, y });
-
-        this.reachableCells.push({
-            cell,
-            path: this.buildPath(search.parents, key)
-        });
-    }
-
-    // Reconstruit le chemin (cases) depuis la position de départ jusqu'à la case.
-    buildPath(parents, key) {
-        const path = [];
-        let current = key;
-
-        while (current) {
-            const [x, y] = current.split(",").map(Number);
-            path.unshift(this.map.getCell(x, y));
-            current = parents.get(current) || null;
-        }
-
-        return path.slice(1); // sans la case de départ
     }
 
     // ==================================================================
