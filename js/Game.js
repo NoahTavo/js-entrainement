@@ -237,29 +237,37 @@ class Game {
         this.movesLeft -= 1;
     }
 
-    movePlayerTo(player, cell) {
-        const previousCell = this.map.getCell(player.x, player.y);
+movePlayerTo(player, cell) {
+    const previousCell = this.map.getCell(player.x, player.y);
 
-        previousCell.content = Cell.EMPTY;
-        player.position = { x: cell.x, y: cell.y };
-        this.pickUpWeapon(player, cell);
-        cell.content = player;
+    // En partant, la case retrouve l'arme déposée (ou redevient vide).
+    previousCell.content = previousCell.weapon || Cell.EMPTY;
+    previousCell.weapon = null;
+
+    player.position = { x: cell.x, y: cell.y };
+    this.pickUpWeapon(player, cell);
+    cell.content = player;
+}
+
+// Ramassage : le joueur échange son arme contre celle au sol,
+// et l'ancienne arme reste sur la case (sauf les poings).
+pickUpWeapon(player, cell) {
+    if (!(cell.content instanceof Weapon)) {
+        return;
     }
 
-    // Ramassage : le joueur échange son arme contre celle au sol.
-    pickUpWeapon(player, cell) {
-        if (!(cell.content instanceof Weapon)) {
-            return;
-        }
+    const picked = cell.content;
+    const dropped = player.weapon;
 
-        const picked = cell.content;
-        const dropped = player.weapon;
+    player.weapon = picked;
+    cell.weapon = dropped === DEFAULT_WEAPON ? null : dropped;
 
-        player.weapon = picked;
-        cell.content = dropped;
-
+    if (cell.weapon) {
         addLog(`${player.name} échange ${dropped.name} contre ${picked.name} (${picked.damage} dégâts).`);
+    } else {
+        addLog(`${player.name} ramasse ${picked.name} (${picked.damage} dégâts).`);
     }
+}
 
     // Après un pas au clavier : combat, fin de tour, ou on continue.
     afterMove() {

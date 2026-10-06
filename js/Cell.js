@@ -6,6 +6,7 @@ class Cell {
         this._x = x;
         this._y = y;
         this._content = content;
+        this._weapon = null;
     }
 
     get x() {
@@ -30,5 +31,12 @@ class Cell {
 
     get isEmpty() {
         return this._content === Cell.EMPTY;
+    }
+    get weapon() {
+        return this._weapon;
+    }
+
+    set weapon(value) {
+        this._weapon = value;
     }
 }
