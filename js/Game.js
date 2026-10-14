@@ -198,25 +198,27 @@ class Game {
         this.afterMove();
     }
 
-    // Déplacement au clic : le joueur suit le chemin complet jusqu'à la case ciblée.
+    // Déplacement au clic : le joueur suit le chemin complet jusqu'à la case ciblée,
+    // puis le tour passe directement à l'adversaire (même s'il lui restait des déplacements).
     moveToCell(targetCell) {
         if (!this.isMoving) {
             return;
         }
-
+    
         const target = this.findReachableEntry(targetCell);
         if (!target) {
             return;
         }
-
+    
         this.followPath(target.path);
-
-        // Si le combat s'est engagé en chemin, il gère déjà l'affichage.
+    
+        // Si le combat s'est engagé en chemin, startCombat() gère déjà l'affichage.
+        // Sinon, on termine le tour immédiatement.
         if (this.isMoving) {
-            this.continueTurn();
+            this.endTurn();
         }
     }
-
+    
     findReachableEntry(cell) {
         return this.reachableCells.find(entry => entry.cell === cell);
     }
