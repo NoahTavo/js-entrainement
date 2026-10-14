@@ -152,6 +152,11 @@ class Game {
     }
 
     handleMovingKey(key) {
+    if (key === "Enter") {
+        this.endTurnManually();
+        return;
+    }
+
     const directionName = Game.KEY_DIRECTIONS[key];
 
     if (directionName) {
@@ -311,6 +316,24 @@ class Game {
     
         renderGame(this);
     }
+    // Le joueur doit avoir avancé d'au moins 1 case avant de passer la main.
+get canEndTurn() {
+    return this.isMoving && this.movesLeft < MAX_MOVE;
+}
+
+endTurnManually() {
+    if (!this.isMoving) {
+        return;
+    }
+
+    if (!this.canEndTurn) {
+        addLog(`${this.currentPlayer.name} doit se déplacer d'au moins 1 case.`);
+        renderGame(this);
+        return;
+    }
+
+    this.endTurn();
+}
 
     // Passe la main à l'adversaire. Si celui-ci est emmuré dès le début
     // de son tour, il passe aussi (sauf si les deux joueurs sont bloqués).
@@ -338,34 +361,31 @@ class Game {
     // ou la dernière case libre avant un obstacle / un joueur / le bord de la carte.
     // Si le joueur a déjà avancé ce tour, seule la direction choisie reste possible.
     computeReachableCells() {
-        const player = this.currentPlayer;
-        this.reachableCells = [];
-    
-        Object.entries(DIRECTIONS).forEach(([name, direction]) => {
-            if (this.lockedDirection && this.lockedDirection !== name) {
-                return;
+    const player = this.currentPlayer;
+    this.reachableCells = [];
+
+    Object.entries(DIRECTIONS).forEach(([name, direction]) => {
+        if (this.lockedDirection && this.lockedDirection !== name) {
+            return;
+        }
+
+        const path = [];
+
+        for (let step = 1; step <= this.movesLeft; step++) {
+            const cell = this.map.getCell(
+                player.x + direction.dx * step,
+                player.y + direction.dy * step
+            );
+
+            if (!this.canMoveTo(cell)) {
+                break;
             }
-    
-            const path = [];
-    
-            for (let step = 1; step <= this.movesLeft; step++) {
-                const cell = this.map.getCell(
-                    player.x + direction.dx * step,
-                    player.y + direction.dy * step
-                );
-    
-                if (!this.canMoveTo(cell)) {
-                    break;
-                }
-    
-                path.push(cell);
-            }
-    
-            if (path.length > 0) {
-                this.reachableCells.push({ cell: path[path.length - 1], path });
-            }
-        });
-    }
+
+            path.push(cell);
+            this.reachableCells.push({ cell, path: [...path] });
+        }
+    });
+}
 
     // ==================================================================
     // Phase de combat (COMBAT)

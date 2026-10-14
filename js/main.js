@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Boutons d'action (mêmes actions que les touches).
     document.getElementById("attack-button").addEventListener("click", () => game.attack());
     document.getElementById("posture-button").addEventListener("click", () => game.togglePosture());
+    document.getElementById("end-turn-button").addEventListener("click", () => game.endTurnManually());
     // Clic sur une case surlignée pour s'y déplacer.
     getMapContainer().addEventListener("click", (event) => {
         const cellElement = event.target.closest(".map__cell");
