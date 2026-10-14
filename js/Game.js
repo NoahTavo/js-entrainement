@@ -1,5 +1,5 @@
 class Game {
-    // Touches du clavier -> nom de direction (voir DIRECTIONS dans constants.js)
+    // Touches du clavier -> nom de direction (voir DIRECTIONS dans config/constants.js)
     static KEY_DIRECTIONS = {
         ArrowUp: "up",
         ArrowDown: "down",
@@ -7,24 +7,76 @@ class Game {
         ArrowRight: "right"
     };
 
-    // Clé unique d'une coordonnée, utilisée par le parcours des cases atteignables
-    static toKey(x, y) {
-        return `${x},${y}`;
-    }
-
     constructor(map, players) {
-        this.map = map;
-        this.players = players;
-        this.currentPlayerIndex = 0; // le joueur 1 commence toujours
-        this.state = GAME_STATES.MOVING;
-        this.movesLeft = MAX_MOVE;
-        this.reachableCells = [];
-        this.winner = null;
+        this._map = map;
+        this._players = players;
+        this._currentPlayerIndex = 0; // le joueur 1 commence toujours
+        this._state = GAME_STATES.MOVING;
+        this._movesLeft = MAX_MOVE;
+        this._lockedDirection = null; // direction choisie pour ce tour (null = pas encore bougé)
+        this._reachableCells = [];
+        this._winner = null;
     }
 
     // ==================================================================
-    // Accès et état
+    // Getters / setters
     // ==================================================================
+
+    get map() {
+        return this._map;
+    }
+
+    get players() {
+        return this._players;
+    }
+
+    get currentPlayerIndex() {
+        return this._currentPlayerIndex;
+    }
+
+    set currentPlayerIndex(value) {
+        this._currentPlayerIndex = value;
+    }
+
+    get state() {
+        return this._state;
+    }
+
+    set state(value) {
+        this._state = value;
+    }
+
+    get movesLeft() {
+        return this._movesLeft;
+    }
+
+    set movesLeft(value) {
+        this._movesLeft = value;
+    }
+
+    get lockedDirection() {
+        return this._lockedDirection;
+    }
+
+    set lockedDirection(value) {
+        this._lockedDirection = value;
+    }
+
+    get reachableCells() {
+        return this._reachableCells;
+    }
+
+    set reachableCells(value) {
+        this._reachableCells = value;
+    }
+
+    get winner() {
+        return this._winner;
+    }
+
+    set winner(value) {
+        this._winner = value;
+    }
 
     get currentPlayer() {
         return this.players[this.currentPlayerIndex];
@@ -46,12 +98,18 @@ class Game {
         return this.state === GAME_STATES.OVER;
     }
 
+    get arePlayersAdjacent() {
+        const [first, second] = this.players;
+
+        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
+    }
+
     switchToNextPlayer() {
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
     }
 
     announceCurrentTurn() {
-        addLog(`Au tour de ${this.currentPlayer.getName()}.`);
+        addLog(`Au tour de ${this.currentPlayer.name}.`);
     }
 
     // ==================================================================
@@ -59,7 +117,7 @@ class Game {
     // ==================================================================
 
     start() {
-        addLog(`${this.currentPlayer.getName()} commence la partie !`);
+        addLog(`${this.currentPlayer.name} commence la partie !`);
         this.computeReachableCells();
         renderGame(this);
     }
@@ -94,23 +152,19 @@ class Game {
     }
 
     handleMovingKey(key) {
-        const directionName = Game.KEY_DIRECTIONS[key];
+    const directionName = Game.KEY_DIRECTIONS[key];
 
-        if (directionName) {
-            this.moveByDirection(directionName);
-            return;
-        }
-
-        if (key === "Enter") {
-            this.endTurn();
-        }
+    if (directionName) {
+        this.moveByDirection(directionName);
     }
+}
 
     // ==================================================================
     // Phase de déplacement (MOVING)
     // ==================================================================
 
     // Déplacement d'une case au clavier.
+    // Un changement de direction pendant un déplacement est interdit.
     moveByDirection(directionName) {
         if (!this.isMoving) {
             return;
@@ -118,6 +172,12 @@ class Game {
 
         const direction = DIRECTIONS[directionName];
         if (!direction) {
+            return;
+        }
+
+        if (this.lockedDirection && this.lockedDirection !== directionName) {
+            addLog("Changement de direction interdit pendant un déplacement.");
+            renderGame(this);
             return;
         }
 
@@ -163,7 +223,7 @@ class Game {
         for (const cell of path) {
             this.stepTo(player, cell);
 
-            if (this.arePlayersAdjacent()) {
+            if (this.arePlayersAdjacent) {
                 this.startCombat();
                 return;
             }
@@ -176,48 +236,57 @@ class Game {
     }
 
     canMoveTo(cell) {
-        return Boolean(cell) && !cell.isObstacle && !(cell.content instanceof Player);
+        return Boolean(cell) && !cell.isObstacle && !this.map.getPlayerAt(cell.x, cell.y);
     }
 
-    // Un pas : déplace le joueur et consomme un point de déplacement.
+    // Un pas : verrouille la direction du tour, déplace le joueur
+    // et consomme un point de déplacement.
     stepTo(player, cell) {
+        const dx = cell.x - player.x;
+        const dy = cell.y - player.y;
+
+        this.lockedDirection = Object.keys(DIRECTIONS).find(name =>
+            DIRECTIONS[name].dx === dx && DIRECTIONS[name].dy === dy
+        );
+
         this.movePlayerTo(player, cell);
         this.movesLeft -= 1;
     }
 
     movePlayerTo(player, cell) {
-        const previousCell = this.map.getCell(player.x, player.y);
-
-        previousCell.content = Cell.EMPTY;
-        player.setPosition(cell.x, cell.y);
+        player.position = { x: cell.x, y: cell.y };
         this.pickUpWeapon(player, cell);
-        cell.content = player;
     }
 
-    // Ramassage : le joueur échange son arme contre celle au sol.
+    // Ramassage : le joueur échange son arme contre celle au sol,
+    // et l'ancienne arme reste sur la case (sauf les poings).
     pickUpWeapon(player, cell) {
-        if (!(cell.content instanceof Weapon)) {
+        const picked = this.map.getWeaponAt(cell.x, cell.y);
+
+        if (!picked) {
             return;
         }
 
-        const picked = cell.content;
-        const dropped = player.getWeapon();
+        const dropped = player.weapon;
 
-        player.setWeapon(picked);
-        cell.content = dropped;
+        this.map.removeWeapon(picked);
+        player.weapon = picked;
 
-        addLog(`${player.getName()} échange ${dropped.getName()} contre ${picked.getName()} (${picked.getDamage()} dégâts).`);
-    }
+        const hasDroppedWeapon = dropped !== DEFAULT_WEAPON;
+        if (hasDroppedWeapon) {
+            this.map.addWeapon(dropped, cell.x, cell.y);
+        }
 
-    arePlayersAdjacent() {
-        const [first, second] = this.players;
-
-        return Math.abs(first.x - second.x) + Math.abs(first.y - second.y) === 1;
+        if (hasDroppedWeapon) {
+            addLog(`${player.name} échange ${dropped.name} contre ${picked.name} (${picked.damage} dégâts).`);
+        } else {
+            addLog(`${player.name} ramasse ${picked.name} (${picked.damage} dégâts).`);
+        }
     }
 
     // Après un pas au clavier : combat, fin de tour, ou on continue.
     afterMove() {
-        if (this.arePlayersAdjacent()) {
+        if (this.arePlayersAdjacent) {
             this.startCombat();
             return;
         }
@@ -225,97 +294,77 @@ class Game {
         this.continueTurn();
     }
 
-    // Fin de tour si plus de déplacements, sinon recalcul des cases accessibles.
+    // Après chaque pas : le tour se termine tout seul s'il ne reste plus
+    // de déplacement OU si le joueur est bloqué par un obstacle.
     continueTurn() {
-        if (this.movesLeft <= 0) {
+        this.computeReachableCells();
+    
+        const isBlocked = this.reachableCells.length === 0;
+    
+        if (this.movesLeft <= 0 || isBlocked) {
+            if (isBlocked && this.movesLeft > 0) {
+                addLog(`${this.currentPlayer.name} est bloqué par un obstacle : fin du tour.`);
+            }
             this.endTurn();
             return;
         }
-
-        this.computeReachableCells();
+    
         renderGame(this);
     }
 
-    endTurn() {
+    // Passe la main à l'adversaire. Si celui-ci est emmuré dès le début
+    // de son tour, il passe aussi (sauf si les deux joueurs sont bloqués).
+    endTurn(skippedTurns = 0) {
         if (!this.isMoving) {
             return;
         }
-
+    
         this.switchToNextPlayer();
         this.movesLeft = MAX_MOVE;
+        this.lockedDirection = null;
         this.computeReachableCells();
-
         this.announceCurrentTurn();
+    
+        if (this.reachableCells.length === 0 && skippedTurns < this.players.length - 1) {
+            addLog(`${this.currentPlayer.name} ne peut pas bouger et passe son tour.`);
+            this.endTurn(skippedTurns + 1);
+            return;
+        }
+    
         renderGame(this);
     }
-
-    // ==================================================================
-    // Cases atteignables (parcours en largeur)
-    // ==================================================================
-
-    // Cases atteignables ce tour : 1 à movesLeft cases, à travers les cases
-    // vides uniquement (obstacles et adversaire infranchissables).
+    
+    // Une seule destination par direction : la case située à MAX_MOVE cases,
+    // ou la dernière case libre avant un obstacle / un joueur / le bord de la carte.
+    // Si le joueur a déjà avancé ce tour, seule la direction choisie reste possible.
     computeReachableCells() {
         const player = this.currentPlayer;
-        const search = {
-            distances: new Map([[Game.toKey(player.x, player.y), 0]]),
-            parents: new Map(),
-            queue: [{ x: player.x, y: player.y }]
-        };
-
         this.reachableCells = [];
-
-        while (search.queue.length > 0) {
-            this.exploreNext(search);
-        }
-    }
-
-    // Traite la prochaine case de la file et visite ses voisines.
-    exploreNext(search) {
-        const current = search.queue.shift();
-        const distance = search.distances.get(Game.toKey(current.x, current.y));
-
-        if (distance >= this.movesLeft) {
-            return;
-        }
-
-        Object.values(DIRECTIONS).forEach(direction => {
-            this.visitNeighbor(search, current, direction, distance);
+    
+        Object.entries(DIRECTIONS).forEach(([name, direction]) => {
+            if (this.lockedDirection && this.lockedDirection !== name) {
+                return;
+            }
+    
+            const path = [];
+    
+            for (let step = 1; step <= this.movesLeft; step++) {
+                const cell = this.map.getCell(
+                    player.x + direction.dx * step,
+                    player.y + direction.dy * step
+                );
+    
+                if (!this.canMoveTo(cell)) {
+                    break;
+                }
+    
+                path.push(cell);
+            }
+    
+            if (path.length > 0) {
+                this.reachableCells.push({ cell: path[path.length - 1], path });
+            }
         });
-    }
-
-    visitNeighbor(search, current, direction, distance) {
-        const x = current.x + direction.dx;
-        const y = current.y + direction.dy;
-        const key = Game.toKey(x, y);
-        const cell = this.map.getCell(x, y);
-
-        if (search.distances.has(key) || !this.canMoveTo(cell)) {
-            return;
-        }
-
-        search.distances.set(key, distance + 1);
-        search.parents.set(key, Game.toKey(current.x, current.y));
-        search.queue.push({ x: x, y: y });
-
-        this.reachableCells.push({
-            cell: cell,
-            path: this.buildPath(search.parents, key)
-        });
-    }
-
-    // Reconstruit le chemin (cases) depuis la position de départ jusqu'à la case.
-    buildPath(parents, key) {
-        const path = [];
-        let current = key;
-
-        while (current) {
-            const [x, y] = current.split(",").map(Number);
-            path.unshift(this.map.getCell(x, y));
-            current = parents.get(current) || null;
-        }
-
-        return path.slice(1); // sans la case de départ
     }
 
     // ==================================================================
@@ -324,9 +373,11 @@ class Game {
 
     startCombat() {
         this.state = GAME_STATES.COMBAT;
-        this.players.forEach(player => player.setPosture(POSTURES.OFFENSIVE));
+        this.players.forEach(player => {
+            player.posture = POSTURES.OFFENSIVE;
+        });
 
-        addLog(`${this.players[0].getName()} et ${this.players[1].getName()} sont adjacents : le combat s'engage !`);
+        addLog(`${this.players[0].name} et ${this.players[1].name} sont adjacents : le combat s'engage !`);
         renderGame(this);
     }
 
@@ -340,9 +391,9 @@ class Game {
         const damage = this.computeDamage(attacker, defender);
 
         defender.takeDamage(damage);
-        addLog(`${attacker.getName()} attaque ${defender.getName()} avec ${attacker.getWeapon().getName()} : ${damage} dégâts.`);
+        addLog(`${attacker.name} attaque ${defender.name} avec ${attacker.weapon.name} : ${damage} dégâts.`);
 
-        if (!defender.isAlive()) {
+        if (!defender.isAlive) {
             this.gameOver(attacker);
             return;
         }
@@ -352,9 +403,9 @@ class Game {
 
     // Posture défensive : le défenseur encaisse moins de dégâts.
     computeDamage(attacker, defender) {
-        const weaponDamage = attacker.getWeapon().getDamage();
+        const weaponDamage = attacker.weapon.damage;
 
-        if (defender.getPosture() === POSTURES.DEFENSIVE) {
+        if (defender.posture === POSTURES.DEFENSIVE) {
             return Math.floor(weaponDamage * DEFENSE_DAMAGE_MULTIPLIER);
         }
 
@@ -369,7 +420,7 @@ class Game {
         const player = this.currentPlayer;
         player.togglePosture();
 
-        addLog(`${player.getName()} adopte la posture ${POSTURE_LABELS[player.getPosture()].toLowerCase()}.`);
+        addLog(`${player.name} adopte la posture ${POSTURE_LABELS[player.posture].toLowerCase()}.`);
         this.nextCombatTurn();
     }
 
@@ -387,7 +438,7 @@ class Game {
         this.state = GAME_STATES.OVER;
         this.winner = winner;
 
-        addLog(`${winner.getName()} remporte la partie !`);
+        addLog(`${winner.name} remporte la partie !`);
         renderGame(this);
         showGameOver(winner);
     }

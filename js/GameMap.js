@@ -1,15 +1,44 @@
 class GameMap {
     constructor(columns, rows, obstacleRate, numberWeapons) {
-        this.columns = columns;
-        this.rows = rows;
-        this.obstacleRate = obstacleRate;
-        this.numberWeapons = numberWeapons;
+        this._columns = columns;
+        this._rows = rows;
+        this._obstacleRate = obstacleRate;
+        this._numberWeapons = numberWeapons;
+        this._grid = [];
+        this._weapons = []; // armes posées au sol
+        this._players = []; // dans l'ordre de placement (joueur 1 d'abord)
 
-        this.cells = [];
-
-        this.createCells();
+        this.createGrid();
         this.placeWeapons();
-        this.placeCharacters();
+        this.placePlayers();
+    }
+
+    get columns() {
+        return this._columns;
+    }
+
+    get rows() {
+        return this._rows;
+    }
+
+    get obstacleRate() {
+        return this._obstacleRate;
+    }
+
+    get numberWeapons() {
+        return this._numberWeapons;
+    }
+
+    get grid() {
+        return this._grid;
+    }
+
+    get weapons() {
+        return this._weapons;
+    }
+
+    get players() {
+        return this._players;
     }
 
     // ----- Création -----
@@ -18,10 +47,10 @@ class GameMap {
         return Math.random() < this.obstacleRate ? Cell.OBSTACLE : Cell.EMPTY;
     }
 
-    createCells() {
+    createGrid() {
         for (let x = 0; x < this.columns; x++) {
             for (let y = 0; y < this.rows; y++) {
-                this.cells.push(new Cell(x, y, this.generateCellContent()));
+                this.grid.push(new Cell(x, y, this.generateCellContent()));
             }
         }
     }
@@ -33,11 +62,7 @@ class GameMap {
     }
 
     getCell(x, y) {
-        if (!this.isInsideMap(x, y)) {
-            return null;
-        }
-
-        return this.cells[x * this.rows + y];
+        return this.isInsideMap(x, y) ? this.grid[x * this.rows + y] : null;
     }
 
     getRandomCell() {
@@ -47,45 +72,71 @@ class GameMap {
         return this.getCell(x, y);
     }
 
+    // ----- Armes et joueurs posés sur la grille -----
+
+    getWeaponAt(x, y) {
+        return this.weapons.find(weapon => weapon.x === x && weapon.y === y) || null;
+    }
+
+    getPlayerAt(x, y) {
+        return this.players.find(player => player.x === x && player.y === y) || null;
+    }
+
+    // Pose une arme au sol (placement initial ou arme déposée par un joueur).
+    addWeapon(weapon, x, y) {
+        weapon.position = { x, y };
+        this.weapons.push(weapon);
+    }
+
+    // Retire une arme du sol (ramassée par un joueur).
+    removeWeapon(weapon) {
+        this._weapons = this.weapons.filter(item => item !== weapon);
+        weapon.position = { x: null, y: null };
+    }
+
+    // Case vide, sans arme ni joueur.
+    isCellFree(cell) {
+        return cell.isEmpty
+            && !this.getWeaponAt(cell.x, cell.y)
+            && !this.getPlayerAt(cell.x, cell.y);
+    }
+
     // ----- Placement -----
 
     placeWeapons() {
         WEAPON_TYPES.forEach(weaponType => {
-            let weaponPlaced = false;
+            let isSearchingCell = true;
 
-            while (!weaponPlaced) {
+            while (isSearchingCell) {
                 const cell = this.getRandomCell();
 
-                if (cell.isEmpty) {
-                    cell.content = weaponType;
-                    weaponPlaced = true;
+                if (this.isCellFree(cell)) {
+                    this.addWeapon(weaponType.clone(), cell.x, cell.y);
+                    isSearchingCell = false;
                 }
             }
         });
     }
 
-    placeCharacters() {
-        const placedPlayers = [];
-
-        retrieveSelectedCharacters().forEach(character => {
-            const cell = this.findStartingCell(placedPlayers);
+    placePlayers() {
+        new PlayerManager().selectedPlayers.forEach(player => {
+            const cell = this.findPlayerStartingCell();
 
             if (!cell) {
                 return;
             }
 
-            const player = new Player(character, cell.x, cell.y);
-            cell.content = player;
-            placedPlayers.push(player);
+            player.position = { x: cell.x, y: cell.y };
+            this.players.push(player);
         });
     }
 
-    // Case vide, jamais adjacente à un joueur déjà placé.
-    findStartingCell(placedPlayers) {
+    // Case libre, jamais adjacente à un joueur déjà placé.
+    findPlayerStartingCell() {
         for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
             const cell = this.getRandomCell();
 
-            if (cell.isEmpty && !this.isAdjacentToPlayer(cell, placedPlayers)) {
+            if (this.isCellFree(cell) && !this.isAdjacentToPlayer(cell)) {
                 return cell;
             }
         }
@@ -93,17 +144,10 @@ class GameMap {
         return null;
     }
 
-    isAdjacentToPlayer(cell, players) {
-        return players.some(player => {
-            return Math.abs(player.x - cell.x) + Math.abs(player.y - cell.y) <= 1;
-        });
-    }
-
-    // Les joueurs posés sur la carte, dans l'ordre (joueur 1 d'abord).
-    get players() {
-        return this.cells
-            .filter(cell => cell.content instanceof Player)
-            .map(cell => cell.content);
+    isAdjacentToPlayer(cell) {
+        return this.players.some(player =>
+            Math.abs(player.x - cell.x) + Math.abs(player.y - cell.y) <= 1
+        );
     }
 
     // ----- Rendu -----
@@ -119,19 +163,21 @@ class GameMap {
             element.classList.add("map__cell--obstacle");
         }
 
-        if (cell.content instanceof Player) {
+        const player = this.getPlayerAt(cell.x, cell.y);
+        const weapon = this.getWeaponAt(cell.x, cell.y);
+
+        // Le joueur est affiché par-dessus une éventuelle arme au sol.
+        if (player) {
             element.classList.add("map__cell--personnage");
 
             const image = document.createElement("img");
             image.classList.add("map__cell-sprite");
-            image.src = cell.content.getPath();
-            image.alt = cell.content.getName();
+            image.src = player.path;
+            image.alt = player.name;
             element.appendChild(image);
-        }
-
-        if (cell.content instanceof Weapon) {
+        } else if (weapon) {
             element.classList.add("map__cell--arme");
-            element.appendChild(cell.content.render());
+            element.appendChild(weapon.render());
         }
 
         return element;
@@ -141,15 +187,11 @@ class GameMap {
         container.innerHTML = "";
 
         container.style.display = "grid";
-        container.style.gridTemplateColumns =
-            `repeat(${this.columns}, minmax(0, 1fr))`;
-        container.style.gridTemplateRows =
-            `repeat(${this.rows}, minmax(0, 1fr))`;
+        container.style.gridTemplateColumns = `repeat(${this.columns}, minmax(0, 1fr))`;
+        container.style.gridTemplateRows = `repeat(${this.rows}, minmax(0, 1fr))`;
 
-        this.cells.forEach(cell => {
-            container.appendChild(this.renderCell(cell));
-        });
+        this.grid.forEach(cell => container.appendChild(this.renderCell(cell)));
     }
 }
 
-// La création de la carte est déclenchée par main.js, le rendu par renderGame (render.js).
+// La création de la carte est déclenchée par main.js, le rendu par renderGame (ui/render.js).

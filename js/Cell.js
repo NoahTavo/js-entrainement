@@ -1,3 +1,5 @@
+// Une cellule est soit vide, soit un obstacle.
+// Les joueurs et les armes qui se trouvent dessus sont gérés par GameMap.
 class Cell {
     static EMPTY = "empty";
     static OBSTACLE = "obstacle";
@@ -18,10 +20,6 @@ class Cell {
 
     get content() {
         return this._content;
-    }
-
-    set content(value) {
-        this._content = value;
     }
 
     get isObstacle() {
