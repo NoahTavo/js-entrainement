@@ -152,17 +152,12 @@ class Game {
     }
 
     handleMovingKey(key) {
-        const directionName = Game.KEY_DIRECTIONS[key];
+    const directionName = Game.KEY_DIRECTIONS[key];
 
-        if (directionName) {
-            this.moveByDirection(directionName);
-            return;
-        }
-
-        if (key === "Enter") {
-            this.endTurn();
-        }
+    if (directionName) {
+        this.moveByDirection(directionName);
     }
+}
 
     // ==================================================================
     // Phase de déplacement (MOVING)
@@ -299,61 +294,75 @@ class Game {
         this.continueTurn();
     }
 
-    // Fin de tour si plus de déplacements, sinon recalcul des cases accessibles.
+    // Après chaque pas : le tour se termine tout seul s'il ne reste plus
+    // de déplacement OU si le joueur est bloqué par un obstacle.
     continueTurn() {
-        if (this.movesLeft <= 0) {
+        this.computeReachableCells();
+    
+        const isBlocked = this.reachableCells.length === 0;
+    
+        if (this.movesLeft <= 0 || isBlocked) {
+            if (isBlocked && this.movesLeft > 0) {
+                addLog(`${this.currentPlayer.name} est bloqué par un obstacle : fin du tour.`);
+            }
             this.endTurn();
             return;
         }
-
-        this.computeReachableCells();
+    
         renderGame(this);
     }
 
-    endTurn() {
+    // Passe la main à l'adversaire. Si celui-ci est emmuré dès le début
+    // de son tour, il passe aussi (sauf si les deux joueurs sont bloqués).
+    endTurn(skippedTurns = 0) {
         if (!this.isMoving) {
             return;
         }
-
+    
         this.switchToNextPlayer();
         this.movesLeft = MAX_MOVE;
         this.lockedDirection = null;
         this.computeReachableCells();
-
         this.announceCurrentTurn();
+    
+        if (this.reachableCells.length === 0 && skippedTurns < this.players.length - 1) {
+            addLog(`${this.currentPlayer.name} ne peut pas bouger et passe son tour.`);
+            this.endTurn(skippedTurns + 1);
+            return;
+        }
+    
         renderGame(this);
     }
-
-    // ==================================================================
-    // Cases atteignables (lignes droites)
-    // ==================================================================
-
-    // Cases atteignables : en ligne droite (haut/bas/gauche/droite), jusqu'à
-    // movesLeft cases, arrêt au premier obstacle ou joueur. Si le joueur a déjà
-    // avancé ce tour, seule la direction choisie reste possible.
+    
+    // Une seule destination par direction : la case située à MAX_MOVE cases,
+    // ou la dernière case libre avant un obstacle / un joueur / le bord de la carte.
+    // Si le joueur a déjà avancé ce tour, seule la direction choisie reste possible.
     computeReachableCells() {
         const player = this.currentPlayer;
         this.reachableCells = [];
-
+    
         Object.entries(DIRECTIONS).forEach(([name, direction]) => {
             if (this.lockedDirection && this.lockedDirection !== name) {
                 return;
             }
-
+    
             const path = [];
-
+    
             for (let step = 1; step <= this.movesLeft; step++) {
                 const cell = this.map.getCell(
                     player.x + direction.dx * step,
                     player.y + direction.dy * step
                 );
-
+    
                 if (!this.canMoveTo(cell)) {
                     break;
                 }
-
+    
                 path.push(cell);
-                this.reachableCells.push({ cell, path: [...path] });
+            }
+    
+            if (path.length > 0) {
+                this.reachableCells.push({ cell: path[path.length - 1], path });
             }
         });
     }

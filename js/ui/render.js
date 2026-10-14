@@ -82,20 +82,18 @@ const updateTurnIndicator = (game) => {
     }
 
     indicator.textContent =
-        `Tour de ${game.currentPlayer.name} — ${game.movesLeft} déplacement(s) restant(s)`;
+    `Tour de ${game.currentPlayer.name} — ${game.movesLeft} case(s) à parcourir`;
 };
 
 const updateCombatActions = (game) => {
     const attackButton = document.getElementById("attack-button");
     const postureButton = document.getElementById("posture-button");
-    const endTurnButton = document.getElementById("end-turn-button");
-    if (!attackButton || !postureButton || !endTurnButton) {
+    if (!attackButton || !postureButton) {
         return;
     }
 
     attackButton.disabled = !game.isInCombat;
     postureButton.disabled = !game.isInCombat;
-    endTurnButton.disabled = game.isInCombat || game.isOver;
 };
 
 // Journal de combat / de déplacement.
